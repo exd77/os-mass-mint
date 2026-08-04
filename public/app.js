@@ -95,12 +95,12 @@ async function loadChains() {
       tr.innerHTML = `
         <td><strong>${chain.name}</strong>${chain.native ? ' <span class="badge-native">native</span>' : ''}</td>
         <td>${chain.id}</td>
-        <td title="${chain.rpc}">${rpcDisplay}${isPrivate ? ' 🔒' : ''}</td>
-        <td>${chain.explorer ? chain.explorer.slice(0, 30) + '...' : '—'}</td>
-        <td>${chain.seadrop ? chain.seadrop.slice(0, 10) + '...' : '—'}</td>
+        <td title="${chain.rpc}">${rpcDisplay}${isPrivate ? ' <span class="badge-native">private</span>' : ''}</td>
+        <td>${chain.explorer ? chain.explorer.slice(0, 30) + '...' : '-'}</td>
+        <td>${chain.seadrop ? chain.seadrop.slice(0, 10) + '...' : '-'}</td>
         <td>
-          ${!chain.native ? `<button class="btn btn-sm btn-danger" onclick="deleteChain('${chain.name}')">🗑</button>` : ''}
-          <button class="btn btn-sm btn-secondary" onclick="testChainRpc('${chain.rpc}')">🔌</button>
+          ${!chain.native ? `<button class="btn btn-sm btn-danger" onclick="deleteChain('${chain.name}')">Delete</button>` : ''}
+          <button class="btn btn-sm btn-secondary" onclick="testChainRpc('${chain.rpc}')">Test</button>
         </td>
       `;
       tbody.appendChild(tr);
@@ -129,14 +129,14 @@ async function testRpc(rpc) {
   const data = await api('POST', '/chains/test', { rpc });
   if (data.status === 'ok') {
     result.innerHTML = `
-      <div style="color:var(--success)">✅ RPC Connected!</div>
+      <div style="color:var(--success)">RPC Connected</div>
       <div class="stat">Chain ID: <strong>${data.chainId}</strong></div>
       <div class="stat">Block: <strong>${data.blockNumber.toLocaleString()}</strong></div>
       <div class="stat">ENS: <strong>${data.ens || 'N/A'}</strong></div>
     `;
     return data;
   } else {
-    result.innerHTML = `<span style="color:var(--danger)">❌ ${data.error}</span>`;
+    result.innerHTML = `<span style="color:var(--danger)">${data.error}</span>`;
     return null;
   }
 }
@@ -207,7 +207,7 @@ async function loadWallets() {
       <td>${w.index}</td>
       <td>${w.address}</td>
       <td id="bal-${w.address}">—</td>
-      <td><button class="btn btn-sm btn-danger" onclick="deleteWallet(${w.index}, '${w.address}')">🗑</button></td>
+      <td><button class="btn btn-sm btn-danger" onclick="deleteWallet(${w.index}, '${w.address}')">Delete</button></td>
     `;
     tbody.appendChild(tr);
   });
@@ -228,15 +228,15 @@ document.getElementById('wallet-generate').addEventListener('click', async () =>
 
   const btn = document.getElementById('wallet-generate');
   btn.disabled = true;
-  btn.textContent = '⏳ Generating...';
+  btn.textContent = 'Generating...';
 
   const result = await api('POST', '/wallets/generate', { count });
   const panel = document.getElementById('wallet-gen-result');
 
   if (result.error) {
-    panel.innerHTML = `<span style="color:var(--danger)">❌ ${result.error}</span>`;
+    panel.innerHTML = `<span style="color:var(--danger)">${result.error}</span>`;
   } else {
-    let html = `<div style="color:var(--success)">✅ Generated ${result.generated} wallet(s) — Total: ${result.total}</div>`;
+    let html = `<div style="color:var(--success)">Generated ${result.generated} wallet(s). Total: ${result.total}</div>`;
     html += '<div class="table-wrap" style="margin-top:8px"><table style="font-size:0.8rem"><thead><tr><th>#</th><th>Address</th></tr></thead><tbody>';
     for (const w of result.newWallets) {
       html += `<tr><td>${w.index}</td><td>${w.address}</td></tr>`;
@@ -249,7 +249,7 @@ document.getElementById('wallet-generate').addEventListener('click', async () =>
 
   panel.classList.remove('hidden');
   btn.disabled = false;
-  btn.textContent = '⚡ Generate Wallets';
+  btn.textContent = 'Generate Wallets';
 });
 
 document.getElementById('wallet-check-all').addEventListener('click', async () => {
@@ -277,11 +277,11 @@ document.getElementById('mint-resolve').addEventListener('click', async () => {
   const data = await api('POST', '/resolve', { input });
   const info = document.getElementById('mint-resolve-info');
   if (data.error) {
-    info.innerHTML = `<span style="color:var(--danger)">❌ ${data.error}</span>`;
+    info.innerHTML = `<span style="color:var(--danger)">${data.error}</span>`;
   } else {
     document.getElementById('mint-chain').value = data.chain;
     info.innerHTML = `
-      <h3>📍 Resolved</h3>
+      <h3>Resolved</h3>
       <div class="stat">Contract: <strong>${data.contract}</strong></div>
       <div class="stat">Chain: <strong>${data.chain}</strong></div>
       ${data.name ? `<div class="stat">Collection: <strong>${data.name}</strong></div>` : ''}
@@ -391,11 +391,11 @@ async function refreshJobs() {
   for (const job of jobs) {
     const card = document.createElement('div');
     card.className = 'job-card';
-    const typeIcon = job.type === 'mass-mint' ? '👥' : '🎨';
+    const typeIcon = job.type === 'mass-mint' ? 'mass' : 'single';
     const time = new Date(job.createdAt).toLocaleTimeString();
     card.innerHTML = `
       <div class="job-header">
-        <span>${typeIcon} ${job.type} — ${time}</span>
+        <span>${typeIcon} ${job.type} - ${time}</span>
         <span class="job-status ${job.status}">${job.status.toUpperCase()}</span>
       </div>
       <div class="stat">Job ID: ${job.id}</div>
@@ -421,8 +421,8 @@ function addLogEntry(source, message, level = '') {
     time: new Date().toISOString().slice(11, 19),
     source: source || 'system',
     message,
-    level: level || (message.includes('❌') || message.includes('[FAIL]') || message.includes('[ERROR]') ? 'error' :
-           message.includes('✅') || message.includes('[OK]') || message.includes('[DONE]') ? 'success' :
+    level: level || (message.includes('[FAIL]') || message.includes('[ERROR]') ? 'error' :
+           message.includes('[OK]') || message.includes('[DONE]') ? 'success' :
            message.includes('[WARN]') || message.includes('[SIM]') ? 'warn' : ''),
   };
   allLogs.push(entry);
@@ -533,8 +533,8 @@ function appendLog(line, jobId = null) {
   const output = document.getElementById('console-output');
   const div = document.createElement('div');
   div.className = 'log-line';
-  if (line.includes('✅') || line.includes('[OK]') || line.includes('[DONE]')) div.classList.add('success');
-  if (line.includes('❌') || line.includes('[FAIL]') || line.includes('[ERROR]')) div.classList.add('error');
+  if (line.includes('[OK]') || line.includes('[DONE]')) div.classList.add('success');
+  if (line.includes('[FAIL]') || line.includes('[ERROR]')) div.classList.add('error');
   if (line.includes('[WARN]') || line.includes('[SIM]')) div.classList.add('warn');
   div.textContent = line;
   output.appendChild(div);
@@ -569,20 +569,24 @@ function updateJobStatus(data) {
 
 // ─── Start ───
 
-// Auth: check status and show logout if enabled
+// Auth: check status and show appropriate UI
 async function checkAuth() {
   const r = await fetch('/api/auth/status');
   const data = await r.json();
+  const section = document.getElementById('auth-section');
+
   if (data.enabled) {
+    // Auth enabled - show logout button + change password form
     document.getElementById('logout-btn').style.display = 'inline-flex';
-    // Show change password form in Config
-    const section = document.getElementById('auth-section');
-    section.innerHTML = '<div class="info-panel" style="color:var(--success)">✅ Password protection enabled</div>';
+    section.innerHTML = '<div class="info-panel" style="color:var(--success)">Password protection enabled</div>';
     document.getElementById('change-password-form').classList.remove('hidden');
+    document.getElementById('set-password-form').classList.add('hidden');
   } else {
+    // No auth - show set password form inline
     document.getElementById('logout-btn').style.display = 'none';
-    const section = document.getElementById('auth-section');
-    section.innerHTML = '<div class="info-panel" style="color:var(--warning)">⚠️ No password set — panel is open. Set password via login page.</div>';
+    section.innerHTML = '<div class="info-panel" style="color:var(--warning)">No password set. Panel is open access.</div>';
+    document.getElementById('set-password-form').classList.remove('hidden');
+    document.getElementById('change-password-form').classList.add('hidden');
   }
 }
 
@@ -591,6 +595,41 @@ document.getElementById('logout-btn').addEventListener('click', async () => {
   window.location.href = '/login.html';
 });
 
+// Set password (when no auth enabled)
+document.getElementById('set-pw-btn').addEventListener('click', async () => {
+  const pw = document.getElementById('set-pw').value;
+  const confirm = document.getElementById('set-pw-confirm').value;
+
+  if (!pw) return alert('Enter a password');
+  if (pw.length < 1) return alert('Password must be at least 1 character');
+  if (pw !== confirm) return alert('Passwords do not match');
+
+  const btn = document.getElementById('set-pw-btn');
+  btn.disabled = true;
+  btn.textContent = 'Setting up...';
+
+  const r = await fetch('/api/auth/setup', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ password: pw }),
+  });
+  const data = await r.json();
+
+  if (data.status === 'ok') {
+    alert('Password set. You will need to login next time.');
+    document.getElementById('set-pw').value = '';
+    document.getElementById('set-pw-confirm').value = '';
+    btn.disabled = false;
+    btn.textContent = 'Set Password';
+    checkAuth();
+  } else {
+    alert('Error: ' + (data.error || 'unknown'));
+    btn.disabled = false;
+    btn.textContent = 'Set Password';
+  }
+});
+
+// Change password (when auth enabled)
 document.getElementById('change-password-btn').addEventListener('click', async () => {
   const oldPw = document.getElementById('old-password').value;
   const newPw = document.getElementById('new-password').value;

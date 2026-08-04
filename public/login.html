@@ -3,31 +3,46 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NFT Minter — Login</title>
+  <title>Minter - Access</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body class="login-body">
+  <div class="login-grain"></div>
+
   <div class="login-container">
-    <div class="login-card">
-      <h1>🎨 NFT Minter Panel</h1>
-      <p id="login-subtitle" class="login-subtitle">Enter password to access</p>
-
-      <div id="login-form" class="hidden">
-        <input type="password" id="login-password" placeholder="Password" autofocus>
-        <button id="login-btn" class="btn btn-primary btn-full">🔓 Login</button>
-        <div id="login-error" class="login-error hidden"></div>
-      </div>
-
-      <div id="setup-form" class="hidden">
-        <p class="setup-hint">No password set yet. Create one to secure your panel.</p>
-        <input type="password" id="setup-password" placeholder="New password (min 1 char)">
-        <input type="password" id="setup-confirm" placeholder="Confirm password">
-        <button id="setup-btn" class="btn btn-primary btn-full">🔐 Set Password</button>
-        <div id="setup-error" class="login-error hidden"></div>
-      </div>
-
-      <div id="loading" class="login-loading">Loading...</div>
+    <div class="login-brand">
+      <svg class="login-mark" width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <path d="M14 2L24 7.5V18.5L14 24L4 18.5V7.5L14 2Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round"/>
+        <path d="M14 9L19 11.75V17.25L14 20L9 17.25V11.75L14 9Z" stroke="currentColor" stroke-width="1.5" stroke-linejoin="round" opacity="0.45"/>
+      </svg>
+      <h1 class="login-title">Minter</h1>
     </div>
+
+    <p id="login-subtitle" class="login-subtitle">// authenticate to continue</p>
+
+    <div id="login-form" class="hidden">
+      <div class="login-field">
+        <input type="password" id="login-password" placeholder="password" autofocus>
+      </div>
+      <button id="login-btn" class="btn btn-primary btn-full">Enter</button>
+      <div id="login-error" class="login-error hidden"></div>
+    </div>
+
+    <div id="setup-form" class="hidden">
+      <p class="setup-hint">No password configured. Set one to secure the panel.</p>
+      <div class="login-field">
+        <input type="password" id="setup-password" placeholder="new password" autofocus>
+      </div>
+      <div class="login-field">
+        <input type="password" id="setup-confirm" placeholder="confirm password">
+      </div>
+      <button id="setup-btn" class="btn btn-primary btn-full">Set Password</button>
+      <div id="setup-error" class="login-error hidden"></div>
+    </div>
+
+    <div id="loading" class="login-loading">connecting...</div>
   </div>
 
   <script src="/login.js"></script>

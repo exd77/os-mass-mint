@@ -3,17 +3,18 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>NFT Minter Panel</title>
+  <title>NFT Minter</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
-  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <header>
-    <h1>🎨 NFT Minter Panel</h1>
+    <h1>NFT Minter</h1>
     <div class="status-bar">
       <span id="server-status">Connecting...</span>
       <span id="wallet-count">0 wallets</span>
-      <button id="logout-btn" class="btn btn-sm btn-danger" style="display:none">🔒 Logout</button>
+      <button id="logout-btn" class="btn btn-sm btn-danger" style="display:none">Logout</button>
     </div>
   </header>
 
@@ -50,9 +51,9 @@
         </div>
       </div>
       <div class="form-row">
-        <button id="mint-resolve" class="btn btn-secondary">🔍 Resolve</button>
-        <button id="mint-dryrun" class="btn btn-warning">🧪 Dry Run</button>
-        <button id="mint-execute" class="btn btn-primary">🚀 Mint</button>
+        <button id="mint-resolve" class="btn btn-secondary">Resolve</button>
+        <button id="mint-dryrun" class="btn btn-warning">Dry Run</button>
+        <button id="mint-execute" class="btn btn-primary">Mint</button>
       </div>
       <div id="mint-resolve-info" class="info-panel hidden"></div>
     </section>
@@ -84,15 +85,15 @@
         <button id="mass-select-none" class="btn btn-sm btn-secondary">Deselect All</button>
       </div>
       <div class="form-row">
-        <button id="mass-execute" class="btn btn-primary">🚀 Mass Mint</button>
+        <button id="mass-execute" class="btn btn-primary">Mass Mint</button>
       </div>
     </section>
 
     <!-- Wallets Tab -->
     <section id="tab-wallets" class="tab-content">
       <div class="form-row">
-        <button id="wallet-refresh" class="btn btn-secondary">🔄 Refresh</button>
-        <button id="wallet-check-all" class="btn btn-secondary">💰 Check All Balances</button>
+        <button id="wallet-refresh" class="btn btn-secondary">Refresh</button>
+        <button id="wallet-check-all" class="btn btn-secondary">Check All Balances</button>
       </div>
       <div class="table-wrap">
         <table id="wallets-table">
@@ -110,7 +111,7 @@
           <input type="number" id="wallet-gen-count" value="5" min="1" max="100">
         </div>
         <div class="form-group" style="display:flex;align-items:flex-end">
-          <button id="wallet-generate" class="btn btn-primary">⚡ Generate Wallets</button>
+          <button id="wallet-generate" class="btn btn-primary">Generate Wallets</button>
         </div>
       </div>
       <div id="wallet-gen-result" class="info-panel hidden"></div>
@@ -144,8 +145,8 @@
         </div>
       </div>
       <div class="form-row">
-        <button id="chain-test" class="btn btn-warning">🔌 Test RPC</button>
-        <button id="chain-add" class="btn btn-primary">➕ Add Chain</button>
+        <button id="chain-test" class="btn btn-warning">Test RPC</button>
+        <button id="chain-add" class="btn btn-primary">Add Chain</button>
       </div>
       <div id="chain-test-result" class="info-panel hidden"></div>
 
@@ -163,10 +164,25 @@
     <!-- Config Tab -->
     <section id="tab-config" class="tab-content">
       <div id="config-form"></div>
-      <button id="config-save" class="btn btn-primary">💾 Save Config</button>
+      <button id="config-save" class="btn btn-primary">Save Config</button>
       <hr style="border-color:var(--border);margin:24px 0">
       <h3>Security</h3>
       <div id="auth-section"></div>
+
+      <!-- Set password form (shown when no auth) -->
+      <div id="set-password-form" class="hidden">
+        <div class="form-group">
+          <label>New Password (min 1 char)</label>
+          <input type="password" id="set-pw" placeholder="Enter new password">
+        </div>
+        <div class="form-group">
+          <label>Confirm Password</label>
+          <input type="password" id="set-pw-confirm" placeholder="Confirm new password">
+        </div>
+        <button id="set-pw-btn" class="btn btn-primary">Set Password</button>
+      </div>
+
+      <!-- Change password form (shown when auth enabled) -->
       <div id="change-password-form" class="hidden">
         <div class="form-group">
           <label>Current Password</label>
@@ -180,13 +196,13 @@
           <label>Confirm New Password</label>
           <input type="password" id="confirm-password" placeholder="Confirm new password">
         </div>
-        <button id="change-password-btn" class="btn btn-primary">🔑 Change Password</button>
+        <button id="change-password-btn" class="btn btn-primary">Change Password</button>
       </div>
     </section>
 
     <!-- Jobs Tab -->
     <section id="tab-jobs" class="tab-content">
-      <button id="jobs-refresh" class="btn btn-secondary">🔄 Refresh</button>
+      <button id="jobs-refresh" class="btn btn-secondary">Refresh</button>
       <div id="jobs-list"></div>
     </section>
 
@@ -203,8 +219,8 @@
               <option value="jobs">Jobs Only</option>
               <option value="system">System Only</option>
             </select>
-            <button id="logs-clear" class="btn btn-sm btn-danger">🗑 Clear</button>
-            <button id="logs-download" class="btn btn-sm btn-secondary">💾 Download</button>
+            <button id="logs-clear" class="btn btn-sm btn-danger">Clear</button>
+            <button id="logs-download" class="btn btn-sm btn-secondary">Download</button>
           </div>
         </div>
       </div>

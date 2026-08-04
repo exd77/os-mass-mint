@@ -7,13 +7,11 @@ async function checkAuthStatus() {
   document.getElementById('loading').classList.add('hidden');
 
   if (data.enabled) {
-    // Auth enabled — show login form
     document.getElementById('login-form').classList.remove('hidden');
-    document.getElementById('login-subtitle').textContent = 'Enter password to access';
+    document.getElementById('login-subtitle').textContent = '// authenticate to continue';
   } else {
-    // No auth — show setup form (first time)
     document.getElementById('setup-form').classList.remove('hidden');
-    document.getElementById('login-subtitle').textContent = 'Set up password to secure your panel';
+    document.getElementById('login-subtitle').textContent = '// initial setup required';
   }
 }
 
@@ -25,7 +23,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
 
   const btn = document.getElementById('login-btn');
   btn.disabled = true;
-  btn.textContent = '⏳ Verifying...';
+  btn.textContent = 'Verifying...';
 
   const r = await fetch('/api/auth/login', {
     method: 'POST',
@@ -41,7 +39,7 @@ document.getElementById('login-btn').addEventListener('click', async () => {
     err.textContent = data.error || 'Login failed';
     err.classList.remove('hidden');
     btn.disabled = false;
-    btn.textContent = '🔓 Login';
+    btn.textContent = 'Enter';
   }
 });
 
@@ -69,7 +67,7 @@ document.getElementById('setup-btn').addEventListener('click', async () => {
 
   const btn = document.getElementById('setup-btn');
   btn.disabled = true;
-  btn.textContent = '⏳ Setting up...';
+  btn.textContent = 'Setting up...';
 
   const r = await fetch('/api/auth/setup', {
     method: 'POST',
@@ -84,8 +82,16 @@ document.getElementById('setup-btn').addEventListener('click', async () => {
     err.textContent = data.error || 'Setup failed';
     err.classList.remove('hidden');
     btn.disabled = false;
-    btn.textContent = '🔐 Set Password';
+    btn.textContent = 'Set Password';
   }
+});
+
+document.getElementById('setup-password').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') document.getElementById('setup-confirm').focus();
+});
+
+document.getElementById('setup-confirm').addEventListener('keypress', (e) => {
+  if (e.key === 'Enter') document.getElementById('setup-btn').click();
 });
 
 // ─── Init ───

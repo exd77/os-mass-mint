@@ -762,8 +762,8 @@ app.post('/api/auth/change-password', (req, res) => {
 // ─── Start ───
 
 server.listen(PORT, '0.0.0.0', () => {
-  console.log(`🎨 NFT Minter Panel: http://localhost:${PORT}`);
-  console.log(`📊 API: http://localhost:${PORT}/api/chains`);
+  console.log(`NFT Minter Panel: http://localhost:${PORT}`);
+  console.log(`API: http://localhost:${PORT}/api/chains`);
 });
 
 export { app, io, server };
