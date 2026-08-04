@@ -1,0 +1,53 @@
+{
+  "chains": {
+    "ethereum": {
+      "id": 1,
+      "rpc": "https://ethereum.publicnode.com",
+      "explorer": "https://etherscan.io/tx/",
+      "native": true
+    },
+    "base": {
+      "id": 8453,
+      "rpc": "https://mainnet.base.org",
+      "explorer": "https://basescan.org/tx/",
+      "native": true
+    },
+    "polygon": {
+      "id": 137,
+      "rpc": "https://polygon-bor-rpc.publicnode.com",
+      "explorer": "https://polygonscan.com/tx/",
+      "native": true
+    },
+    "arbitrum": {
+      "id": 42161,
+      "rpc": "https://arb1.arbitrum.io/rpc",
+      "explorer": "https://arbiscan.io/tx/",
+      "native": true
+    },
+    "optimism": {
+      "id": 10,
+      "rpc": "https://mainnet.optimism.io",
+      "explorer": "https://optimistic.etherscan.io/tx/",
+      "native": true
+    },
+    "bsc": {
+      "id": 56,
+      "rpc": "https://bsc-dataseed.binance.org",
+      "explorer": "https://bscscan.com/tx/",
+      "native": true
+    },
+    "zora-network": {
+      "id": 7777777,
+      "rpc": "https://rpc.zora.energy",
+      "explorer": "https://explorer.zora.energy/tx/",
+      "native": true
+    },
+    "robinhood": {
+      "id": 4663,
+      "rpc": "https://rpc.mainnet.chain.robinhood.com/",
+      "explorer": "https://robinhoodchain.blockscout.com/tx/",
+      "native": true,
+      "seadrop": "0x00005EA00Ac477B1030CE78506496e8C2dE24bf5"
+    }
+  }
+}

@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFT Minter Panel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header>
+    <h1>🎨 NFT Minter Panel</h1>
+    <div class="status-bar">
+      <span id="server-status">Connecting...</span>
+      <span id="wallet-count">0 wallets</span>
+      <button id="logout-btn" class="btn btn-sm btn-danger" style="display:none">🔒 Logout</button>
+    </div>
+  </header>
+
+  <main>
+    <!-- Tab navigation -->
+    <nav class="tabs">
+      <button class="tab active" data-tab="mint">Mint</button>
+      <button class="tab" data-tab="mass">Mass Mint</button>
+      <button class="tab" data-tab="wallets">Wallets</button>
+      <button class="tab" data-tab="chains">Chains</button>
+      <button class="tab" data-tab="config">Config</button>
+      <button class="tab" data-tab="jobs">Jobs</button>
+      <button class="tab" data-tab="logs">Logs</button>
+    </nav>
+
+    <!-- Mint Tab -->
+    <section id="tab-mint" class="tab-content active">
+      <div class="form-group">
+        <label>OpenSea URL / Contract Address</label>
+        <input type="text" id="mint-input" placeholder="https://opensea.io/collection/... or 0xABC...">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Chain</label>
+          <select id="mint-chain"></select>
+        </div>
+        <div class="form-group">
+          <label>Quantity</label>
+          <input type="number" id="mint-amount" value="1" min="1" max="100">
+        </div>
+        <div class="form-group">
+          <label>Wallet</label>
+          <select id="mint-wallet"></select>
+        </div>
+      </div>
+      <div class="form-row">
+        <button id="mint-resolve" class="btn btn-secondary">🔍 Resolve</button>
+        <button id="mint-dryrun" class="btn btn-warning">🧪 Dry Run</button>
+        <button id="mint-execute" class="btn btn-primary">🚀 Mint</button>
+      </div>
+      <div id="mint-resolve-info" class="info-panel hidden"></div>
+    </section>
+
+    <!-- Mass Mint Tab -->
+    <section id="tab-mass" class="tab-content">
+      <div class="form-group">
+        <label>OpenSea URL / Contract Address</label>
+        <input type="text" id="mass-input" placeholder="https://opensea.io/collection/... or 0xABC...">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Chain</label>
+          <select id="mass-chain"></select>
+        </div>
+        <div class="form-group">
+          <label>Quantity per wallet</label>
+          <input type="number" id="mass-amount" value="1" min="1" max="100">
+        </div>
+        <div class="form-group">
+          <label>Concurrent</label>
+          <input type="number" id="mass-concurrent" value="5" min="1" max="10">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Select Wallets</label>
+        <div id="mass-wallets" class="wallet-checkbox-list"></div>
+        <button id="mass-select-all" class="btn btn-sm btn-secondary">Select All</button>
+        <button id="mass-select-none" class="btn btn-sm btn-secondary">Deselect All</button>
+      </div>
+      <div class="form-row">
+        <button id="mass-execute" class="btn btn-primary">🚀 Mass Mint</button>
+      </div>
+    </section>
+
+    <!-- Wallets Tab -->
+    <section id="tab-wallets" class="tab-content">
+      <div class="form-row">
+        <button id="wallet-refresh" class="btn btn-secondary">🔄 Refresh</button>
+        <button id="wallet-check-all" class="btn btn-secondary">💰 Check All Balances</button>
+      </div>
+      <div class="table-wrap">
+        <table id="wallets-table">
+          <thead>
+            <tr><th>#</th><th>Address</th><th>Chains</th><th>Actions</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+      <hr style="border-color:var(--border);margin:24px 0">
+      <h3>Generate New EVM Wallets</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Number of wallets to generate</label>
+          <input type="number" id="wallet-gen-count" value="5" min="1" max="100">
+        </div>
+        <div class="form-group" style="display:flex;align-items:flex-end">
+          <button id="wallet-generate" class="btn btn-primary">⚡ Generate Wallets</button>
+        </div>
+      </div>
+      <div id="wallet-gen-result" class="info-panel hidden"></div>
+    </section>
+
+    <!-- Chains Tab -->
+    <section id="tab-chains" class="tab-content">
+      <h3>Add Custom Chain / Private RPC</h3>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Chain Name</label>
+          <input type="text" id="chain-name" placeholder="e.g. avalanche, linea, scroll">
+        </div>
+        <div class="form-group">
+          <label>Chain ID</label>
+          <input type="number" id="chain-id" placeholder="e.g. 43114">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>RPC URL (public or private: Alchemy/Infura/QuickNode)</label>
+        <input type="text" id="chain-rpc" placeholder="https://... or https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY">
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Block Explorer (optional)</label>
+          <input type="text" id="chain-explorer" placeholder="https://snowtrace.io/tx/">
+        </div>
+        <div class="form-group">
+          <label>SeaDrop Address (optional)</label>
+          <input type="text" id="chain-seadrop" placeholder="0x00005EA0...">
+        </div>
+      </div>
+      <div class="form-row">
+        <button id="chain-test" class="btn btn-warning">🔌 Test RPC</button>
+        <button id="chain-add" class="btn btn-primary">➕ Add Chain</button>
+      </div>
+      <div id="chain-test-result" class="info-panel hidden"></div>
+
+      <h3 style="margin-top:24px">Configured Chains</h3>
+      <div class="table-wrap">
+        <table id="chains-table">
+          <thead>
+            <tr><th>Name</th><th>ID</th><th>RPC</th><th>Explorer</th><th>SeaDrop</th><th>Actions</th></tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Config Tab -->
+    <section id="tab-config" class="tab-content">
+      <div id="config-form"></div>
+      <button id="config-save" class="btn btn-primary">💾 Save Config</button>
+      <hr style="border-color:var(--border);margin:24px 0">
+      <h3>Security</h3>
+      <div id="auth-section"></div>
+      <div id="change-password-form" class="hidden">
+        <div class="form-group">
+          <label>Current Password</label>
+          <input type="password" id="old-password" placeholder="Enter current password">
+        </div>
+        <div class="form-group">
+          <label>New Password (min 1 char)</label>
+          <input type="password" id="new-password" placeholder="Enter new password">
+        </div>
+        <div class="form-group">
+          <label>Confirm New Password</label>
+          <input type="password" id="confirm-password" placeholder="Confirm new password">
+        </div>
+        <button id="change-password-btn" class="btn btn-primary">🔑 Change Password</button>
+      </div>
+    </section>
+
+    <!-- Jobs Tab -->
+    <section id="tab-jobs" class="tab-content">
+      <button id="jobs-refresh" class="btn btn-secondary">🔄 Refresh</button>
+      <div id="jobs-list"></div>
+    </section>
+
+    <!-- Logs Tab -->
+    <section id="tab-logs" class="tab-content">
+      <div class="logs-controls">
+        <div class="form-row">
+          <div class="form-group" style="flex:1">
+            <input type="text" id="logs-filter" placeholder="Filter logs (e.g. ERROR, OK, seadrop...)">
+          </div>
+          <div class="form-group" style="display:flex;align-items:flex-end;gap:8px">
+            <select id="logs-source">
+              <option value="all">All Sources</option>
+              <option value="jobs">Jobs Only</option>
+              <option value="system">System Only</option>
+            </select>
+            <button id="logs-clear" class="btn btn-sm btn-danger">🗑 Clear</button>
+            <button id="logs-download" class="btn btn-sm btn-secondary">💾 Download</button>
+          </div>
+        </div>
+      </div>
+      <div id="logs-panel" class="logs-panel">
+        <div id="logs-output" class="logs-output"></div>
+      </div>
+    </section>
+
+    <!-- Log console -->
+    <div id="console-panel" class="console hidden">
+      <div class="console-header">
+        <span>Live Log</span>
+        <button id="console-clear" class="btn btn-sm btn-secondary">Clear</button>
+        <button id="console-toggle" class="btn btn-sm btn-secondary">−</button>
+      </div>
+      <div id="console-output" class="console-output"></div>
+    </div>
+  </main>
+
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

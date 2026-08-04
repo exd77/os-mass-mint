@@ -1,0 +1,23 @@
+{
+  "name": "universal-nft-minter",
+  "version": "1.0.0",
+  "description": "Universal NFT minter — one command mint anywhere. OpenSea, SeaDrop, Manifold, Zora, direct contract.",
+  "type": "module",
+  "bin": {
+    "mint": "./src/mint.js",
+    "mass-mint": "./src/mass-mint.js"
+  },
+  "scripts": {
+    "mint": "node src/mint.js",
+    "mass-mint": "node src/mass-mint.js",
+    "test": "node src/mint.js --dry-run"
+  },
+  "dependencies": {
+    "ethers": "^6.13.0",
+    "dotenv": "^16.4.0",
+    "p-limit": "^6.1.0",
+    "express": "^4.21.0",
+    "socket.io": "^4.8.0",
+    "cookie-parser": "^1.4.7"
+  }
+}

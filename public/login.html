@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>NFT Minter — Login</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body class="login-body">
+  <div class="login-container">
+    <div class="login-card">
+      <h1>🎨 NFT Minter Panel</h1>
+      <p id="login-subtitle" class="login-subtitle">Enter password to access</p>
+
+      <div id="login-form" class="hidden">
+        <input type="password" id="login-password" placeholder="Password" autofocus>
+        <button id="login-btn" class="btn btn-primary btn-full">🔓 Login</button>
+        <div id="login-error" class="login-error hidden"></div>
+      </div>
+
+      <div id="setup-form" class="hidden">
+        <p class="setup-hint">No password set yet. Create one to secure your panel.</p>
+        <input type="password" id="setup-password" placeholder="New password (min 1 char)">
+        <input type="password" id="setup-confirm" placeholder="Confirm password">
+        <button id="setup-btn" class="btn btn-primary btn-full">🔐 Set Password</button>
+        <div id="setup-error" class="login-error hidden"></div>
+      </div>
+
+      <div id="loading" class="login-loading">Loading...</div>
+    </div>
+  </div>
+
+  <script src="/login.js"></script>
+</body>
+</html>
