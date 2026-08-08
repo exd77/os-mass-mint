@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark light">
+  <meta name="theme-color" content="#0B0B0E">
+  <script>
+    (function () {
+      try {
+        const savedTheme = localStorage.getItem('rusminter-theme');
+        document.documentElement.dataset.theme = savedTheme === 'light' || savedTheme === 'dark' ? savedTheme : 'dark';
+      } catch (_) {
+        document.documentElement.dataset.theme = 'dark';
+      }
+    })();
+  </script>
+  <title>RUSMINTER | Mint Momentum</title>
+  <link rel="icon" type="image/png" href="/logo-64.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap">
+  <link rel="stylesheet" href="/style.css?v=20.1">
+</head>
+<body>
+  <div class="app-layout">
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-brand">
+        <div class="brand-lockup" aria-label="RUSMINTER">
+          <span class="brand-symbol" aria-hidden="true">
+            <svg viewBox="0 0 32 32" fill="none"><path d="M7 6.5h11.2c4.5 0 7.3 2.5 7.3 6.2 0 2.6-1.4 4.5-3.9 5.5L27 25.5h-6.2l-4.4-6.3h-3.8v6.3H7v-19Zm5.6 4.5v3.9h5.1c1.4 0 2.2-.7 2.2-2s-.8-1.9-2.2-1.9h-5.1Z" fill="currentColor"/></svg>
+          </span>
+          <span class="brand-copy"><strong>RUSMINTER</strong><small>Onchain console</small></span>
+        </div>
+      </div>
+      <nav class="sidebar-nav" aria-label="Main navigation">
+        <div class="nav-label">Workspace</div>
+        <button class="tab active" data-tab="dashboard" data-title="Dashboard" data-desc="Live overview of wallets, networks, minting activity, and execution health.">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="2"/><rect x="14" y="3" width="7" height="7" rx="2"/><rect x="3" y="14" width="7" height="7" rx="2"/><rect x="14" y="14" width="7" height="7" rx="2"/></svg>
+          Dashboard
+        </button>
+        <button class="tab" data-tab="mint" data-title="Mint" data-desc="Mint NFT from an OpenSea collection or contract address.">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3z"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15z" opacity="0.5"/></svg>
+          Mint
+        </button>
+        <div class="nav-label">Manage</div>
+        <button class="tab" data-tab="wallets" data-title="Wallets" data-desc="Manage EVM wallets and check balances across chains.">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H5a2 2 0 0 1-2-2 2 2 0 0 1 2-2h13v4"/><path d="M3 5v13a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1"/><circle cx="16.5" cy="14" r="1.2"/></svg>
+          Wallets
+        </button>
+        <button class="tab" data-tab="chains" data-title="Chains" data-desc="Configure networks and private RPC endpoints.">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.07 0l2.12-2.12a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.81 13.12a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>
+          Chains
+        </button>
+        <div class="nav-label">System</div>
+        <button class="tab" data-tab="activity" data-title="Activity" data-desc="Mint activity calendar and daily chart.">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
+          Activity
+        </button>
+        <button class="tab" data-tab="config" data-title="Config" data-desc="Application settings and security options.">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          Config
+        </button>
+        <button class="tab" data-tab="jobs" data-title="Jobs" data-desc="Track minting jobs and their execution status.">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><circle cx="4" cy="6" r="1"/><circle cx="4" cy="12" r="1"/><circle cx="4" cy="18" r="1"/></svg>
+          Jobs
+        </button>
+      </nav>
+      <div class="sidebar-workspace momentum-nav-actions">
+        <span id="server-status" class="momentum-status-chip" aria-live="polite">Connecting...</span>
+        <button class="momentum-wallet-button" type="button" data-open-tab="wallets">
+          <span id="wallet-count">0 wallets</span>
+        </button>
+        <button type="button" class="momentum-settings-button theme-toggle" data-theme-toggle aria-label="Switch color theme" title="Switch color theme">
+          <svg class="theme-icon theme-icon-sun" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path></svg>
+          <svg class="theme-icon theme-icon-moon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path></svg>
+        </button>
+        <button id="logout-btn" class="btn btn-sm btn-outline-danger" style="display:none">Logout</button>
+      </div>
+      <div class="sidebar-foot">RUSMINTER · secure local panel</div>
+    </aside>
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+    <!-- Main -->
+    <div class="app-main">
+      <header class="topbar">
+        <button id="sidebar-toggle" class="icon-btn" aria-label="Toggle navigation" aria-controls="sidebar" aria-expanded="false">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div class="topbar-head">
+          <h1 id="page-title">Dashboard</h1>
+          <p id="page-desc">Live overview of wallets, networks, minting activity, and execution health.</p>
+        </div>
+        <div class="status-bar mobile-topbar-actions">
+          <span class="badge badge-plain">RUSMINTER</span>
+        </div>
+      </header>
+
+      <main class="content">
+
+        <!-- Dashboard Tab -->
+        <section id="tab-dashboard" class="tab-content active momentum-dashboard-page">
+          <div class="momentum-wordmark" aria-label="RUSMINTER dashboard">
+            <span>RUS</span>MINTER
+          </div>
+
+          <div class="momentum-dashboard-grid">
+            <!-- Left column -->
+            <div class="momentum-column momentum-column-left">
+              <article class="momentum-card momentum-activity-card">
+                <div class="momentum-card-head">
+                  <div>
+                    <span class="momentum-label">MINT ACTIVITY</span>
+                    <strong class="momentum-big-value"><span id="overview-minted">0</span> NFTs</strong>
+                  </div>
+                  <div class="mmt-range-tabs" aria-label="Chart range">
+                    <button data-dashboard-range="7">7D</button>
+                    <button class="active" data-dashboard-range="14">14D</button>
+                    <button data-dashboard-range="30">1M</button>
+                  </div>
+                </div>
+                <div class="momentum-chart-meta">
+                  <span><b id="overview-period-mints">0</b> minted</span>
+                  <span><b id="overview-period-jobs">0</b> jobs</span>
+                </div>
+                <div id="dashboard-activity-chart" class="dashboard-line-chart momentum-line-chart" aria-label="Mint activity chart"></div>
+              </article>
+
+              <article class="momentum-card momentum-calendar-card">
+                <div class="momentum-card-head compact">
+                  <div><span class="momentum-section-title">Mint Calendar</span><small id="dashboard-calendar-title">Current month</small></div>
+                  <button class="momentum-link-button" data-open-tab="activity">View all</button>
+                </div>
+                <div id="dashboard-calendar" class="momentum-mini-calendar momentum-calendar-full"></div>
+              </article>
+            </div>
+
+            <!-- Center column -->
+            <div class="momentum-column momentum-column-center">
+              <article class="momentum-card momentum-mint-card">
+                <div class="momentum-card-head momentum-mint-head">
+                  <div><span class="momentum-section-title">Mint</span><small>Single or parallel execution</small></div>
+                  <button class="momentum-gear" data-open-tab="config" aria-label="Open configuration">⚙</button>
+                </div>
+
+                <div class="momentum-mint-field momentum-mint-field-input">
+                  <label class="momentum-field-copy" for="dashboard-mint-input">
+                    <span class="sr-only">Collection URL or contract address</span>
+                    <input id="dashboard-mint-input" class="momentum-field-control" type="text" autocomplete="off" spellcheck="false" placeholder="OpenSea URL / 0x" aria-describedby="dashboard-mint-helper" autocapitalize="none" enterkeyhint="go">
+                    <em id="dashboard-mint-helper" class="momentum-field-status" aria-live="polite">Resolve collection details</em>
+                  </label>
+                  <div class="momentum-selector-slot">
+                    <select id="dashboard-mint-chain" class="momentum-native-select" aria-hidden="true" tabindex="-1"></select>
+                    <button id="dashboard-chain-trigger" class="momentum-selector-trigger momentum-chain-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="mint-selector-modal">
+                      <span id="dashboard-chain-icon" class="momentum-selector-icon" aria-hidden="true">R</span>
+                      <span id="dashboard-chain-label" class="momentum-selector-label">Select chain</span>
+                      <span class="momentum-selector-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                  </div>
+                </div>
+
+
+                <div class="momentum-mint-field momentum-mint-field-bottom momentum-wallet-field">
+                  <div class="momentum-field-copy">
+                    <span class="sr-only">Execution wallets</span>
+                    <button id="dashboard-wallet-display" class="momentum-wallet-display is-placeholder" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="mint-selector-modal">Select wallets</button>
+                  </div>
+                  <div class="momentum-selector-slot">
+                    <select id="dashboard-mint-wallet" class="momentum-native-select" aria-hidden="true" tabindex="-1"></select>
+                    <button id="dashboard-wallet-trigger" class="momentum-selector-trigger momentum-wallet-trigger" type="button" aria-haspopup="dialog" aria-expanded="false" aria-controls="mint-selector-modal">
+                      <span class="momentum-selector-icon wallet" aria-hidden="true">◈</span>
+                      <span id="dashboard-wallet-label" class="momentum-selector-label">Wallets</span>
+                      <span class="momentum-selector-chevron" aria-hidden="true">⌄</span>
+                    </button>
+                  </div>
+                </div>
+
+                <button id="dashboard-mint-execute" class="momentum-primary-action" type="button">Start Minting</button>
+
+                <div class="momentum-mint-tools">
+                  <button id="dash-resolve" class="mint-tool-btn" type="button">Resolve</button>
+                  <button id="dash-dryrun" class="mint-tool-btn" type="button">Dry Run</button>
+                </div>
+
+                <div id="dash-result" class="dash-result" hidden>
+                  <div class="dash-result-inner" id="dash-result-body"></div>
+                  <a class="dash-result-link" href="#" id="dash-result-logs">View full log →</a>
+                </div>
+              </article>
+
+              <article class="momentum-card momentum-positions-card">
+                <div class="momentum-section-title">My Workspace</div>
+                <div class="momentum-position-panel">
+                  <div><span class="momentum-position-icon">≋</span><span><small>Total Jobs</small><strong id="overview-jobs">0</strong></span></div>
+                  <div><span class="momentum-position-icon bag">♙</span><span><small>Success Rate</small><strong id="overview-rate">0%</strong><em id="overview-rate-sub">No completed jobs</em></span></div>
+                  <span id="overview-running" class="momentum-queue-chip">0 running</span>
+                </div>
+              </article>
+            </div>
+
+            <!-- Right column -->
+            <div class="momentum-column momentum-column-right">
+              <article class="momentum-card momentum-volume-card">
+                <div class="momentum-card-head">
+                  <div><span class="momentum-label">TOTAL JOB VOLUME</span><strong class="momentum-big-value" id="momentum-total-volume">0</strong></div>
+                  <span class="momentum-time-pill" id="volume-range-pill">14D</span>
+                </div>
+                <div id="dashboard-volume-chart" class="momentum-volume-chart" aria-label="Job volume bar chart"></div>
+              </article>
+
+              <article class="momentum-card momentum-recent-mini-card">
+                <div class="momentum-card-head compact">
+                  <div><span class="momentum-section-title">Recent Jobs</span><small>Latest 3 executions</small></div>
+                  <button class="momentum-link-button" data-open-tab="jobs">View all →</button>
+                </div>
+                <div id="dashboard-recent-jobs" class="momentum-recent-list">
+                  <div class="momentum-recent-empty">No jobs yet.</div>
+                </div>
+              </article>
+
+              <article class="momentum-card momentum-network-card momentum-network-compact">
+                <div class="momentum-card-head compact">
+                  <div><span class="momentum-section-title">Networks</span></div>
+                  <button class="momentum-link-button" data-open-tab="chains">Configure →</button>
+                </div>
+                <div id="dashboard-networks" class="dashboard-resource-list momentum-network-list">
+                  <div class="overview-empty">No networks configured.</div>
+                </div>
+                <div class="momentum-network-summary">
+                  <button data-open-tab="wallets">
+                    <span class="momentum-asset-icon mini wallet">W</span>
+                    <span><small>Wallets</small><strong><b id="overview-wallets">0</b> ready</strong></span>
+                  </button>
+                  <button data-open-tab="chains">
+                    <span class="momentum-asset-icon mini network">N</span>
+                    <span><small>Networks</small><strong><b id="overview-chains">0</b> configured</strong></span>
+                  </button>
+                </div>
+                <div id="dashboard-wallets" class="dashboard-resource-list momentum-hidden-resource"><div class="overview-empty">No wallets configured.</div></div>
+              </article>
+            </div>
+          </div>
+
+        </section>
+
+        <!-- Activity Tab -->
+        <section id="tab-activity" class="tab-content">
+          <div class="activity-grid">
+            <div class="card">
+              <div class="card-header">
+                <h2 id="cal-title">Activity</h2>
+                <div class="actions">
+                  <button id="cal-prev" class="btn btn-sm btn-outline" aria-label="Previous month">‹</button>
+                  <button id="cal-next" class="btn btn-sm btn-outline" aria-label="Next month">›</button>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="calendar-grid" class="calendar"></div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-header">
+                <h2>Mints — Last 14 Days</h2>
+              </div>
+              <div class="card-body">
+                <div id="mint-chart" class="mint-chart"></div>
+              </div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <h2>Logs</h2>
+            </div>
+            <div class="card-body">
+              <div class="logs-controls">
+                <div class="logs-toolbar">
+                  <input type="text" id="logs-filter" placeholder="Filter logs (e.g. ERROR, OK, seadrop...)">
+                  <select id="logs-source">
+                    <option value="all">All Sources</option>
+                    <option value="jobs">Jobs Only</option>
+                    <option value="system">System Only</option>
+                  </select>
+                  <button id="logs-clear" class="btn btn-sm btn-outline-danger">Clear</button>
+                  <button id="logs-download" class="btn btn-sm btn-secondary">Download</button>
+                </div>
+              </div>
+              <div id="logs-panel" class="logs-panel">
+                <div id="logs-output" class="logs-output"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Mint Tab (Dashboard: mint + mass mint + stats + recent) -->
+        <section id="tab-mint" class="tab-content">
+          <div class="dash-grid">
+            <!-- Top left: Mint -->
+            <div class="card">
+              <div class="card-header action-card-header">
+                <div class="action-card-title">
+                  <span class="action-card-icon action-card-icon-purple" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none"><path d="M12 3l1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9L12 3Z" stroke="currentColor" stroke-width="1.8"/><path d="M19 15l.9 2.1L22 18l-2.1.9L19 21l-.9-2.1L16 18l2.1-.9L19 15Z" fill="currentColor"/></svg>
+                  </span>
+                  <div><span class="card-eyebrow">Single action</span><h2>Mint NFT</h2><p>Resolve and execute from one wallet.</p></div>
+                </div>
+                <span class="card-state"><i></i> Ready</span>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="mint-input">OpenSea URL / Contract Address</label>
+                  <input type="text" id="mint-input" class="mono" placeholder="https://opensea.io/collection/... or 0xABC...">
+                </div>
+                <div class="form-grid form-grid-2">
+                  <div class="form-group">
+                    <label for="mint-chain">Chain</label>
+                    <select id="mint-chain"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="mint-amount">Quantity</label>
+                    <input type="number" id="mint-amount" value="1" min="1" max="100">
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="mint-wallet">Wallet</label>
+                  <select id="mint-wallet"></select>
+                </div>
+                <div class="btn-row">
+                  <button id="mint-resolve" class="btn btn-secondary">Resolve</button>
+                  <button id="mint-dryrun" class="btn btn-outline">Dry Run</button>
+                  <button id="mint-execute" class="btn btn-primary">Run</button>
+                </div>
+                <div id="mint-resolve-info" class="info-panel hidden"></div>
+              </div>
+            </div>
+
+            <!-- Top right: Mass Mint -->
+            <div class="card">
+              <div class="card-header action-card-header">
+                <div class="action-card-title">
+                  <span class="action-card-icon action-card-icon-blue" aria-hidden="true">
+                    <svg viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="7" height="7" rx="2" stroke="currentColor" stroke-width="1.8"/><rect x="13" y="4" width="7" height="7" rx="2" stroke="currentColor" stroke-width="1.8"/><rect x="4" y="13" width="7" height="7" rx="2" stroke="currentColor" stroke-width="1.8"/><path d="M16.5 14v5M14 16.5h5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>
+                  </span>
+                  <div><span class="card-eyebrow">Batch action</span><h2>Mass Mint</h2><p>Distribute execution across wallets.</p></div>
+                </div>
+                <span class="card-state card-state-blue"><i></i> Parallel</span>
+              </div>
+              <div class="card-body">
+                <div class="form-group">
+                  <label for="mass-input">OpenSea URL / Contract Address</label>
+                  <input type="text" id="mass-input" class="mono" placeholder="https://opensea.io/collection/... or 0xABC...">
+                </div>
+                <div class="form-grid">
+                  <div class="form-group">
+                    <label for="mass-chain">Chain</label>
+                    <select id="mass-chain"></select>
+                  </div>
+                  <div class="form-group">
+                    <label for="mass-amount">Qty / wallet</label>
+                    <input type="number" id="mass-amount" value="1" min="1" max="100">
+                  </div>
+                  <div class="form-group">
+                    <label for="mass-concurrent">Concurrent</label>
+                    <input type="number" id="mass-concurrent" value="5" min="1" max="10">
+                  </div>
+                </div>
+                <div class="form-group" style="margin-bottom:8px">
+                  <label>Wallets</label>
+                  <div class="combo" id="mass-wallet-combo">
+                    <button type="button" class="combo-trigger" id="mass-combo-trigger">
+                      <span id="mass-combo-label">0 wallets selected</span>
+                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+                    </button>
+                    <div class="combo-panel hidden" id="mass-combo-panel">
+                      <div class="combo-search">
+                        <input type="text" id="mass-wallet-search" placeholder="Search wallet...">
+                      </div>
+                      <div class="combo-actions">
+                        <button type="button" id="mass-select-all" class="combo-action">Select all</button>
+                        <button type="button" id="mass-select-none" class="combo-action">Clear</button>
+                      </div>
+                      <div id="mass-wallets" class="wallet-checkbox-list combo-list"></div>
+                    </div>
+                  </div>
+                  <span id="mass-selected-count" class="selected-count hidden"></span>
+                </div>
+                <div class="btn-row" style="justify-content:flex-end">
+                  <button id="mass-execute" class="btn btn-primary">Mass Mint</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Bottom row: Minted / Success Rate / Recent -->
+            <div class="stat-tile purple">
+              <div class="stat-tile-head"><span class="stat-tile-label">Minted</span><span class="stat-icon">↗</span></div>
+              <span class="stat-tile-value" id="dash-minted">0</span>
+              <span class="stat-tile-sub">NFTs total</span>
+            </div>
+            <div class="stat-tile teal">
+              <div class="stat-tile-head"><span class="stat-tile-label">Success Rate</span><span class="stat-icon stat-icon-green">✓</span></div>
+              <span class="stat-tile-value" id="dash-rate">0%</span>
+              <span class="stat-tile-sub" id="dash-rate-sub">0 of 0 jobs</span>
+            </div>
+            <div class="card">
+              <div class="card-header">
+                <div>
+                  <h2>Recent Mint</h2>
+                </div>
+              </div>
+              <div class="card-body">
+                <div id="recent-mints" class="recent-list"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Mass Mint Tab -->
+        <section id="tab-mass" class="tab-content">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2>Mass Mint</h2>
+                <p>Mass mint has been merged into the Mint dashboard.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <p style="color:var(--text-dim);font-size:0.85rem">Single mint, mass mint, stats, and recent activity now live together on the <strong>Mint</strong> page.</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- Wallets Tab -->
+        <section id="tab-wallets" class="tab-content">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2>Wallets</h2>
+                <p>All generated EVM wallets. Click an address to copy.</p>
+              </div>
+              <div class="actions">
+                <button id="wallet-refresh" class="btn btn-sm btn-secondary">Refresh</button>
+                <button id="wallet-check-all" class="btn btn-sm btn-secondary">Check All Balances</button>
+                <button id="wallet-gen-open" class="btn btn-sm btn-primary">Generate Wallet</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap" id="wallets-table-wrap">
+                <table id="wallets-table">
+                  <thead>
+                    <tr><th>#</th><th>Address</th><th>Chains</th><th>Actions</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+
+          <!-- Generate wallets modal -->
+          <div id="wallet-gen-modal" class="modal hidden" role="dialog" aria-modal="true" aria-labelledby="wallet-gen-title" aria-hidden="true" tabindex="-1">
+            <div class="modal-backdrop" data-close-modal></div>
+            <div class="modal-card">
+              <h2 id="wallet-gen-title">Generate New EVM Wallets</h2>
+              <p class="modal-desc">New wallets are derived locally and appended to your wallet store. Back up the wallet file — private keys are not recoverable otherwise.</p>
+              <div class="form-group">
+                <label for="wallet-gen-count">Number of wallets to generate</label>
+                <input type="number" id="wallet-gen-count" value="5" min="1" max="100">
+              </div>
+              <div class="modal-actions">
+                <button id="wallet-gen-cancel" class="btn btn-outline">Cancel</button>
+                <button id="wallet-generate" class="btn btn-primary">Generate Wallets</button>
+              </div>
+              <div id="wallet-gen-result" class="info-panel hidden"></div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Chains Tab -->
+        <section id="tab-chains" class="tab-content">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2>Add Custom Chain</h2>
+                <p>Connect any EVM network with a public or private RPC.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="chain-name">Chain Name</label>
+                  <input type="text" id="chain-name" placeholder="e.g. avalanche, linea, scroll">
+                </div>
+                <div class="form-group">
+                  <label for="chain-id">Chain ID</label>
+                  <input type="number" id="chain-id" placeholder="e.g. 43114">
+                </div>
+              </div>
+              <div class="form-group">
+                <label for="chain-rpc">RPC URL (public or private: Alchemy/Infura/QuickNode)</label>
+                <input type="text" id="chain-rpc" class="mono" placeholder="https://... or https://eth-mainnet.g.alchemy.com/v2/YOUR_KEY">
+              </div>
+              <div class="form-row">
+                <div class="form-group">
+                  <label for="chain-explorer">Block Explorer (optional)</label>
+                  <input type="text" id="chain-explorer" placeholder="https://snowtrace.io/tx/">
+                </div>
+                <div class="form-group">
+                  <label for="chain-seadrop">SeaDrop Address (optional)</label>
+                  <input type="text" id="chain-seadrop" class="mono" placeholder="0x00005EA0...">
+                </div>
+              </div>
+              <div class="btn-row">
+                <button id="chain-test" class="btn btn-secondary">Test RPC</button>
+                <button id="chain-add" class="btn btn-primary">Add Chain</button>
+              </div>
+              <div id="chain-test-result" class="info-panel hidden"></div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2>Configured Chains</h2>
+                <p>Networks available for minting.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="table-wrap">
+                <table id="chains-table">
+                  <thead>
+                    <tr><th>Name</th><th>ID</th><th>RPC</th><th>Explorer</th><th>SeaDrop</th><th>Actions</th></tr>
+                  </thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Config Tab -->
+        <section id="tab-config" class="tab-content">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2>General Configuration</h2>
+                <p>Runtime settings for minting and network behavior.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="config-form"></div>
+              <div class="sticky-save">
+                <button id="config-save" class="btn btn-primary">Save Config</button>
+              </div>
+            </div>
+          </div>
+
+          <div class="card card-security">
+            <div class="card-header">
+              <div>
+                <h2>Security</h2>
+                <p>Password protection for this panel.</p>
+              </div>
+            </div>
+            <div class="card-body">
+              <div id="auth-section"></div>
+
+              <!-- Set password form (shown when no auth) -->
+              <div id="set-password-form" class="hidden">
+                <div class="form-group">
+                  <label for="set-pw">New Password</label>
+                  <div class="pw-wrap">
+                    <input type="password" id="set-pw" placeholder="Enter new password">
+                    <button type="button" class="pw-toggle" data-pw-toggle="set-pw" aria-label="Show password">&#9673;</button>
+                  </div>
+                  <div class="pw-strength"><span data-pw-strength="set-pw"></span></div>
+                </div>
+                <div class="form-group">
+                  <label for="set-pw-confirm">Confirm Password</label>
+                  <div class="pw-wrap">
+                    <input type="password" id="set-pw-confirm" placeholder="Confirm new password">
+                    <button type="button" class="pw-toggle" data-pw-toggle="set-pw-confirm" aria-label="Show password">&#9673;</button>
+                  </div>
+                </div>
+                <button id="set-pw-btn" class="btn btn-primary">Set Password</button>
+              </div>
+
+              <!-- Change password form (shown when auth enabled) -->
+              <div id="change-password-form" class="hidden">
+                <div class="form-group">
+                  <label for="old-password">Current Password</label>
+                  <div class="pw-wrap">
+                    <input type="password" id="old-password" placeholder="Enter current password">
+                    <button type="button" class="pw-toggle" data-pw-toggle="old-password" aria-label="Show password">&#9673;</button>
+                  </div>
+                </div>
+                <div class="form-group">
+                  <label for="new-password">New Password</label>
+                  <div class="pw-wrap">
+                    <input type="password" id="new-password" placeholder="Enter new password">
+                    <button type="button" class="pw-toggle" data-pw-toggle="new-password" aria-label="Show password">&#9673;</button>
+                  </div>
+                  <div class="pw-strength"><span data-pw-strength="new-password"></span></div>
+                </div>
+                <div class="form-group">
+                  <label for="confirm-password">Confirm New Password</label>
+                  <div class="pw-wrap">
+                    <input type="password" id="confirm-password" placeholder="Confirm new password">
+                    <button type="button" class="pw-toggle" data-pw-toggle="confirm-password" aria-label="Show password">&#9673;</button>
+                  </div>
+                </div>
+                <p class="modal-desc" style="margin-bottom:14px">Changing the password will invalidate your current session on other devices.</p>
+                <button id="change-password-btn" class="btn btn-warning">Change Password</button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- Jobs Tab -->
+        <section id="tab-jobs" class="tab-content">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <h2>Jobs</h2>
+                <p>Execution history of mint and mass-mint runs.</p>
+              </div>
+              <div class="actions">
+                <button id="jobs-refresh" class="btn btn-sm btn-secondary">Refresh</button>
+              </div>
+            </div>
+            <div class="card-body">
+              <div class="jobs-tools">
+                <input type="text" id="jobs-filter" placeholder="Search job ID or type...">
+                <select id="jobs-status-filter">
+                  <option value="all">All Statuses</option>
+                  <option value="pending">Pending</option>
+                  <option value="running">Running</option>
+                  <option value="completed">Completed</option>
+                  <option value="failed">Failed</option>
+                </select>
+              </div>
+              <div id="jobs-list"></div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+
+      <!-- Log console -->
+      <div id="console-panel" class="console hidden">
+        <div class="console-header">
+          <span>Live Log</span>
+          <div class="actions">
+            <button id="console-clear" class="btn btn-sm btn-outline">Clear</button>
+            <button id="console-toggle" class="btn btn-sm btn-outline">−</button>
+          </div>
+        </div>
+        <div id="console-output" class="console-output"></div>
+      </div>
+    </div>
+  </div>
+
+
+  <div id="mint-selector-modal" class="modal mint-selector-modal hidden" role="dialog" aria-modal="true" aria-labelledby="mint-selector-title" aria-describedby="mint-selector-description" aria-hidden="true">
+    <div class="modal-backdrop" data-close-mint-selector></div>
+    <div class="modal-card mint-selector-card" tabindex="-1">
+      <div class="mint-selector-header">
+        <div>
+          <h2 id="mint-selector-title">Select an option</h2>
+          <p id="mint-selector-description">Choose from your configured resources.</p>
+        </div>
+        <button id="mint-selector-close" class="mint-selector-close" type="button" aria-label="Close selector">×</button>
+      </div>
+      <label class="mint-selector-search" for="mint-selector-search-input">
+        <span aria-hidden="true">⌕</span>
+        <span class="sr-only">Search options</span>
+        <input id="mint-selector-search-input" type="search" autocomplete="off" placeholder="Search" aria-controls="mint-selector-options">
+      </label>
+      <div id="mint-selector-options" class="mint-selector-options" role="listbox" aria-labelledby="mint-selector-title"></div>
+      <p id="mint-selector-empty" class="mint-selector-empty" hidden>No matching options.</p>
+    </div>
+  </div>
+
+  <div id="toast-container"></div>
+
+  <script src="/theme.js?v=14"></script>
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="/app.js?v=18"></script>
+</body>
+</html>
