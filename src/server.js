@@ -44,7 +44,7 @@ const PORT = process.env.PORT || 3137;
 
 function authMiddleware(req, res, next) {
   // Skip auth for login page, login API, and static assets for login
-  const publicPaths = ['/login.html', '/style.css', '/login.js', '/api/auth/login', '/api/auth/status', '/api/auth/setup'];
+  const publicPaths = ['/login.html', '/style.css', '/style-v2.css', '/login.js', '/api/auth/login', '/api/auth/status', '/api/auth/setup'];
   if (publicPaths.includes(req.path) || req.path === '/') {
     return next();
   }
@@ -408,6 +408,26 @@ app.get('/api/chains', (req, res) => {
   res.json(result);
 });
 
+// ─── OpenSea stats proxy (price, supply) ───
+app.get('/api/opensea/stats/:slug', async (req, res) => {
+  const apiKey = process.env.OPENSEA_API_KEY;
+  if (!apiKey) return res.status(400).json({ error: 'OPENSEA_API_KEY not set' });
+  try {
+    const base = process.env.OPENSEA_API_BASE || 'https://api.opensea.io/api/v2';
+    const r = await fetch(`${base}/collections/${req.params.slug}/stats`, { headers: { 'X-API-KEY': apiKey } });
+    if (!r.ok) return res.status(r.status).json({ error: `opensea ${r.status}` });
+    const d = await r.json();
+    res.json({
+      floor: d?.total?.floor_price ?? null,
+      symbol: d?.total?.floor_price_symbol || 'ETH',
+      totalSupply: d?.total?.count ?? null,
+      numMinted: d?.total?.num_owners ?? null,
+    });
+  } catch (e) {
+    res.status(500).json({ error: e.message });
+  }
+});
+
 // ─── Custom Chain Management ───
 
 app.post('/api/chains', (req, res) => {
@@ -627,7 +647,7 @@ app.post('/api/mint', async (req, res) => {
 });
 
 app.post('/api/mass-mint', async (req, res) => {
-  const { input, chain, amount, walletIndices, maxConcurrent } = req.body;
+  const { input, chain, amount, walletIndices, maxConcurrent, dryRun = false } = req.body;
 
   try {
     let target = parseTarget(input);
@@ -647,11 +667,11 @@ app.post('/api/mass-mint', async (req, res) => {
       return { wallet: new ethers.Wallet(pk), index: i, address: w.address };
     });
 
-    const job = createJob('mass-mint', { target, walletCount: wallets.length, amount: target.amount });
+    const job = createJob('mass-mint', { target, walletCount: wallets.length, amount: target.amount, dryRun: Boolean(dryRun) });
     res.json({ jobId: job.id, status: 'pending' });
 
     updateJob(job.id, { status: 'running' });
-    logJob(job.id, `[MASS] ${wallets.length} wallets × ${target.amount} NFTs on ${target.chain}`);
+    logJob(job.id, `[MASS${dryRun ? ':DRY-RUN' : ''}] ${wallets.length} wallets × ${target.amount} NFTs on ${target.chain}`);
 
     const limit = Math.min(maxConcurrent || 5, 10);
     let completed = 0, success = 0, failed = 0, skipped = 0;
@@ -664,11 +684,13 @@ app.post('/api/mass-mint', async (req, res) => {
         batch.map(async (w) => {
           logJob(job.id, `[${i + batch.indexOf(w) + 1}] ${w.address} minting...`);
           try {
-            const result = await executeMint(target, w.wallet, target.amount, job.id, { dryRun: false });
+            const result = await executeMint(target, w.wallet, target.amount, job.id, { dryRun: Boolean(dryRun) });
             completed++;
-            if (result.status === 'success') {
+            if (result.status === 'success' || result.status === 'dry-run') {
               success++;
-              logJob(job.id, `✅ ${w.address} → tokens: ${result.tokenIds?.join(', ')}`);
+              logJob(job.id, dryRun
+                ? `[SIM] ${w.address} → dry run passed`
+                : `✅ ${w.address} → tokens: ${result.tokenIds?.join(', ')}`);
             }
             return { wallet: w.address, ...result };
           } catch (e) {
