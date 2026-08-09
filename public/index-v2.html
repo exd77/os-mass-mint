@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style-v2.css?v=6">
+  <link rel="stylesheet" href="/style-v2.css?v=1">
 </head>
 <body>
   <!-- ═══ SIDEBAR ═══ -->
@@ -61,77 +61,47 @@
   <!-- ═══ MAIN ═══ -->
   <main class="main">
 
-    <!-- ── MINT TAB (reference-inspired landing) ── -->
-    <section id="tab-mint" class="tab active mint-landing">
-      <div class="mint-topbar" aria-label="Mint controls">
-        <div class="mint-wallet-selector-wrap">
-          <button id="mint-wallet-trigger" class="mint-wallet-selector" type="button" aria-haspopup="dialog" aria-controls="mint-selector-modal" aria-expanded="false">
-            <span class="mint-wallet-selector-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                <path d="M20 7H5a2 2 0 0 1-2-2 2 2 0 0 1 2-2h13v4"/>
-                <path d="M3 5v13a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1"/>
-                <circle cx="16.5" cy="14" r="1.2"/>
-              </svg>
-            </span>
-            <span class="mint-wallet-selector-copy">
-              <span class="mint-wallet-selector-kicker">wallet selector</span>
-              <span id="mint-wallet-trigger-label" class="mint-wallet-selector-label">select wallet</span>
-            </span>
-            <svg class="mint-wallet-selector-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true">
-              <path d="m8 10 4 4 4-4"/>
-            </svg>
-          </button>
-          <select id="mint-wallet" class="mint-wallet-native" aria-label="Selected mint wallet" tabindex="-1" aria-hidden="true"></select>
-        </div>
-      </div>
-
-      <div class="center-wrap mint-center">
-        <div class="mascot mint-mascot" aria-hidden="true">
-          <svg viewBox="0 0 210 180" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M69 58 61 25c21 5 32 19 38 31"/>
-            <path d="m133 55 18-31c16 17 18 35 9 48"/>
-            <path d="M76 58c-22 10-34 31-29 52 6 25 31 40 59 35 28-4 48-25 45-49-3-25-27-43-55-42-8 0-14 1-20 4Z"/>
-            <path d="m76 87 17 10-15 17"/>
-            <path d="m133 84-14 12 17 13"/>
-            <path d="M97 121c8 5 17 5 25-1"/>
-            <path d="m105 109 5 4 5-5"/>
-            <path d="M49 99 25 94M50 108l-27 5M151 97l26-7M151 107l28 2"/>
-            <path d="M71 142c-7 8-10 20-3 28 9 11 34 8 51 9 19 1 33 0 35-11 2-9-5-15-18-17"/>
-            <path d="M134 146c13-4 25-12 28-24 4-15-5-28-17-25"/>
-            <path d="M83 148c10 6 29 7 42 3 11-4 22 0 21 12-2 15-28 11-43 11"/>
-            <path d="m92 50 4-16 10 8 8-12 8 17-15 8Z"/>
-            <path d="m96 34 10-2 8-2"/>
+    <!-- ── MINT TAB (default) ── -->
+    <section id="tab-mint" class="tab active">
+      <div class="center-wrap">
+        <div class="mascot">
+          <svg viewBox="0 0 200 120" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <ellipse cx="100" cy="90" rx="60" ry="18"/>
+            <circle cx="70" cy="55" r="28"/>
+            <circle cx="130" cy="55" r="28"/>
+            <path d="M45 40 L55 20 L70 35"/>
+            <path d="M155 40 L145 20 L130 35"/>
+            <path d="M60 55 L70 52 L80 55"/>
+            <path d="M120 55 L130 52 L140 55"/>
+            <path d="M90 70 Q100 78 110 70"/>
+            <path d="M85 85 Q100 92 115 85"/>
+            <path d="M50 70 L35 65 M50 75 L38 78 M50 80 L40 88"/>
+            <path d="M150 70 L165 65 M150 75 L162 78 M150 80 L160 88"/>
           </svg>
         </div>
 
-        <div class="input-area mint-input-area">
-          <div class="input-box mint-input-box">
+        <div class="input-area">
+          <div class="input-box">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-            <input type="text" id="mint-input" placeholder="paste the link here" autocomplete="off" spellcheck="false">
-            <span class="mint-input-divider" aria-hidden="true"></span>
-            <div class="chain-select-wrap mint-chain-inline-wrap">
-              <span class="mint-chain-label">chain</span>
-              <select id="mint-chain" class="chain-select mint-chain-inline" aria-label="Select chain"></select>
+            <input type="text" id="mint-input" placeholder="paste opensea url / contract address" autocomplete="off" spellcheck="false">
+          </div>
+
+          <div class="controls-row">
+            <div class="chain-select-wrap">
+              <select id="mint-chain" class="chain-select"></select>
+            </div>
+            <div class="wallet-select-wrap">
+              <select id="mint-wallet" class="wallet-select"></select>
+            </div>
+            <div class="qty-wrap">
+              <input type="number" id="mint-amount" class="qty-input" value="1" min="1" max="100">
             </div>
           </div>
 
-          <input type="hidden" id="mint-amount" value="1">
-
-          <div class="mint-command-row">
-            <div class="mint-mode-group" aria-label="Mint preparation actions">
-              <button id="mint-resolve" class="mint-mode-btn mint-mode-resolve" type="button">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 3l1.6 4.4L18 9l-4.4 1.6L12 15l-1.6-4.4L6 9l4.4-1.6L12 3z"/><path d="M19 14l.9 2.1L22 17l-2.1.9L19 20l-.9-2.1L16 17l2.1-.9L19 14z"/></svg>
-                <span>resolve</span>
-              </button>
-              <button id="mint-dryrun" class="mint-mode-btn mint-mode-dryrun" type="button">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 5h14v14H5z"/><path d="M8 9l3 3-3 3M13 15h3"/></svg>
-                <span>dry run</span>
-              </button>
-            </div>
-            <button id="mint-execute" class="mint-submit-btn" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M8 4h8v3H8z"/><path d="M6 6h12a2 2 0 0 1 2 2v12H4V8a2 2 0 0 1 2-2z"/><path d="M8 11h8M8 15h5"/></svg>
-              <span>mint</span>
-            </button>
+          <div class="actions-row">
+            <button id="mint-resolve" class="action-btn secondary">resolve</button>
+            <button id="mint-dryrun" class="action-btn secondary">dry run</button>
+            <button id="mint-execute" class="action-btn primary">mint</button>
           </div>
 
           <div id="mint-resolve-info" class="info-panel hidden"></div>
@@ -141,108 +111,77 @@
         </div>
       </div>
 
-      <div class="mint-terms">by continuing, you agree to <span>terms</span> and <span>ethics of use</span></div>
+      <!-- Stats strip -->
+      <div class="stats-strip">
+        <div class="stat-item">
+          <span class="stat-label">minted</span>
+          <span class="stat-value" id="overview-minted">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">jobs</span>
+          <span class="stat-value" id="overview-jobs">0</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">success</span>
+          <span class="stat-value" id="overview-rate">0%</span>
+        </div>
+        <div class="stat-item">
+          <span class="stat-label">running</span>
+          <span class="stat-value" id="overview-running">0</span>
+        </div>
+      </div>
     </section>
 
-    <!-- ── MASS MINT TAB (reuses the Mint visual assets) ── -->
-    <section id="tab-mass" class="tab mass-landing">
-      <div class="mint-topbar mass-topbar" aria-label="Mass mint wallet controls">
-        <div class="mint-wallet-selector-wrap mass-wallet-selector-wrap">
-          <div class="combo mass-wallet-combo" id="mass-wallet-combo">
-            <button type="button" class="combo-trigger mint-wallet-selector mass-wallet-selector" id="mass-combo-trigger" aria-haspopup="listbox" aria-expanded="false" aria-controls="mass-combo-panel">
-              <span class="mint-wallet-selector-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
-                  <path d="M5 7h14M5 12h14M5 17h9"/>
-                  <circle cx="18" cy="17" r="3"/><path d="M18 15.5v3M16.5 17h3"/>
-                </svg>
-              </span>
-              <span class="mint-wallet-selector-copy">
-                <span class="mint-wallet-selector-kicker">wallet selector</span>
-                <span id="mass-combo-label" class="mint-wallet-selector-label">0 wallets selected</span>
-              </span>
-              <svg class="mint-wallet-selector-chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m8 10 4 4 4-4"/></svg>
-            </button>
-            <div class="combo-panel hidden mass-wallet-panel" id="mass-combo-panel" aria-hidden="true">
-              <div class="combo-search">
-                <input type="text" id="mass-wallet-search" placeholder="search wallet..." autocomplete="off">
-              </div>
-              <div class="combo-actions">
-                <button type="button" id="mass-select-all" class="combo-action">select all</button>
-                <button type="button" id="mass-select-none" class="combo-action">clear</button>
-              </div>
-              <div id="mass-wallets" class="wallet-checkbox-list combo-list" role="listbox" aria-multiselectable="true"></div>
-              <span id="mass-selected-count" class="selected-count"></span>
-            </div>
-          </div>
-        </div>
-      </div>
+    <!-- ── MASS MINT TAB ── -->
+    <section id="tab-mass" class="tab">
+      <div class="center-wrap">
+        <h2 class="tab-title">mass mint</h2>
 
-      <div class="center-wrap mint-center mass-center">
-        <!-- Same mascot asset as Mint; edit this SVG here if you want a Mass-specific mascot later. -->
-        <div class="mascot mint-mascot mass-mascot" aria-hidden="true">
-          <svg viewBox="0 0 210 180" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M69 58 61 25c21 5 32 19 38 31"/>
-            <path d="m133 55 18-31c16 17 18 35 9 48"/>
-            <path d="M76 58c-22 10-34 31-29 52 6 25 31 40 59 35 28-4 48-25 45-49-3-25-27-43-55-42-8 0-14 1-20 4Z"/>
-            <path d="m76 87 17 10-15 17"/>
-            <path d="m133 84-14 12 17 13"/>
-            <path d="M97 121c8 5 17 5 25-1"/>
-            <path d="m105 109 5 4 5-5"/>
-            <path d="M49 99 25 94M50 108l-27 5M151 97l26-7M151 107l28 2"/>
-            <path d="M71 142c-7 8-10 20-3 28 9 11 34 8 51 9 19 1 33 0 35-11 2-9-5-15-18-17"/>
-            <path d="M134 146c13-4 25-12 28-24 4-15-5-28-17-25"/>
-            <path d="M83 148c10 6 29 7 42 3 11-4 22 0 21 12-2 15-28 11-43 11"/>
-            <path d="m92 50 4-16 10 8 8-12 8 17-15 8Z"/>
-            <path d="m96 34 10-2 8-2"/>
-          </svg>
-        </div>
-
-        <div class="input-area mint-input-area mass-input-area">
-          <div class="input-box mint-input-box mass-input-box">
+        <div class="input-area">
+          <div class="input-box">
             <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
-            <input type="text" id="mass-input" placeholder="paste the link here" autocomplete="off" spellcheck="false">
-            <span class="mint-input-divider" aria-hidden="true"></span>
-            <div class="chain-select-wrap mint-chain-inline-wrap">
-              <span class="mint-chain-label">chain</span>
-              <select id="mass-chain" class="chain-select mint-chain-inline" aria-label="Select mass mint chain"></select>
+            <input type="text" id="mass-input" placeholder="paste opensea url / contract address" autocomplete="off" spellcheck="false">
+          </div>
+
+          <div class="controls-row">
+            <div class="chain-select-wrap">
+              <select id="mass-chain" class="chain-select"></select>
+            </div>
+            <div class="qty-wrap">
+              <label>qty</label>
+              <input type="number" id="mass-amount" class="qty-input" value="1" min="1" max="100">
+            </div>
+            <div class="qty-wrap">
+              <label>concurrent</label>
+              <input type="number" id="mass-concurrent" class="qty-input" value="5" min="1" max="10">
             </div>
           </div>
 
-          <div class="mint-command-row mass-command-row">
-            <div class="mint-mode-group mass-settings-group" aria-label="Mass mint execution settings">
-              <div class="mint-mode-btn mass-setting-control mass-setting-quantity">
-                <svg class="mass-setting-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M6 7h12M6 12h8M6 17h5"/><path d="M18 14v6M15 17h6"/></svg>
-                <label class="mass-setting-copy" for="mass-amount">
-                  <span>qty /</span>
-                  <svg class="mass-wallet-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M4 7.5h13.5A2.5 2.5 0 0 1 20 10v7a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 17V7.5Z"/><path d="M4 8V6.5A2.5 2.5 0 0 1 6.5 4h10"/><path d="M15 12h5v4h-5a2 2 0 1 1 0-4Z"/></svg>
-                </label>
-                <div class="mass-stepper" data-stepper-for="mass-amount">
-                  <button type="button" class="mass-stepper-btn" data-step-target="mass-amount" data-step="-1" aria-label="Decrease quantity per wallet">−</button>
-                  <input type="number" id="mass-amount" class="mass-setting-input" value="1" min="1" max="100" step="1" inputmode="numeric" aria-label="Quantity per wallet">
-                  <button type="button" class="mass-stepper-btn" data-step-target="mass-amount" data-step="1" aria-label="Increase quantity per wallet">+</button>
+          <div class="wallet-select-area">
+            <div class="combo" id="mass-wallet-combo">
+              <button type="button" class="combo-trigger" id="mass-combo-trigger">
+                <span id="mass-combo-label">0 wallets selected</span>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>
+              </button>
+              <div class="combo-panel hidden" id="mass-combo-panel">
+                <div class="combo-search">
+                  <input type="text" id="mass-wallet-search" placeholder="search wallet...">
                 </div>
-              </div>
-              <div class="mint-mode-btn mass-setting-control mass-setting-concurrent">
-                <svg class="mass-setting-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M5 8h14M5 16h14"/><circle cx="9" cy="8" r="2"/><circle cx="15" cy="16" r="2"/></svg>
-                <label class="mass-setting-copy" for="mass-concurrent">concurrent</label>
-                <div class="mass-stepper" data-stepper-for="mass-concurrent">
-                  <button type="button" class="mass-stepper-btn" data-step-target="mass-concurrent" data-step="-1" aria-label="Decrease concurrent wallets">−</button>
-                  <input type="number" id="mass-concurrent" class="mass-setting-input" value="5" min="1" max="10" step="1" inputmode="numeric" aria-label="Concurrent wallets">
-                  <button type="button" class="mass-stepper-btn" data-step-target="mass-concurrent" data-step="1" aria-label="Increase concurrent wallets">+</button>
+                <div class="combo-actions">
+                  <button type="button" id="mass-select-all" class="combo-action">select all</button>
+                  <button type="button" id="mass-select-none" class="combo-action">clear</button>
                 </div>
+                <div id="mass-wallets" class="wallet-checkbox-list combo-list"></div>
               </div>
             </div>
-            <button id="mass-execute" class="mint-submit-btn mass-submit-btn" type="button">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.5"/><rect x="13" y="4" width="7" height="7" rx="1.5"/><rect x="4" y="13" width="7" height="7" rx="1.5"/><path d="M16.5 14v5M14 16.5h5"/></svg>
-              <span>mass mint</span>
-            </button>
+            <span id="mass-selected-count" class="selected-count hidden"></span>
           </div>
 
-          <div id="mass-status-info" class="info-panel hidden"></div>
+          <div class="actions-row">
+            <button id="mass-execute" class="action-btn primary">execute mass mint</button>
+          </div>
         </div>
       </div>
-
-      <div class="mint-terms mass-terms">batch execution uses selected wallets · <span>quantity and concurrency apply per run</span></div>
     </section>
 
     <!-- ── WALLETS TAB ── -->
@@ -501,10 +440,10 @@
     <div class="modal-backdrop" data-close-mint-selector></div>
     <div class="modal-card">
       <div class="modal-header">
-        <h2 id="mint-selector-title">wallet selector</h2>
+        <h2 id="mint-selector-title">select option</h2>
         <button id="mint-selector-close" class="modal-close">×</button>
       </div>
-      <input id="mint-selector-search-input" type="search" placeholder="search wallet or address" class="modal-search">
+      <input id="mint-selector-search-input" type="search" placeholder="search" class="modal-search">
       <div id="mint-selector-options" class="modal-options"></div>
       <p id="mint-selector-empty" class="modal-empty" hidden>no matching options.</p>
     </div>
@@ -519,6 +458,6 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/app-v2.js?v=5"></script>
+  <script src="/app-v2.js?v=1"></script>
 </body>
 </html>
