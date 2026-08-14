@@ -68,6 +68,31 @@ body {
   flex-direction: column;
   gap: 4px;
   flex: 1;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;               /* allow flex child to shrink below content */
+  scrollbar-width: thin;       /* firefox */
+  scrollbar-color: rgba(217, 119, 6, 0.35) transparent;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+/* webkit scrollbar — thin, amber, subtle */
+.sidebar-nav::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-nav::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-nav::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.35);
+  border-radius: 4px;
+}
+.sidebar-nav:hover::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.6);
+}
+.sidebar-nav::-webkit-scrollbar-thumb:hover {
+  background: rgba(217, 119, 6, 0.85);
 }
 
 .sidebar-bottom {
@@ -75,6 +100,29 @@ body {
   flex-direction: column;
   gap: 4px;
   margin-top: auto;
+  flex-shrink: 0;              /* keep bottom buttons always visible */
+  max-height: 45dvh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(217, 119, 6, 0.35) transparent;
+  overscroll-behavior: contain;
+  padding-right: 2px;
+}
+
+.sidebar-bottom::-webkit-scrollbar {
+  width: 4px;
+}
+.sidebar-bottom::-webkit-scrollbar-track {
+  background: transparent;
+}
+.sidebar-bottom::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.35);
+  border-radius: 4px;
+}
+.sidebar-bottom:hover::-webkit-scrollbar-thumb {
+  background: rgba(217, 119, 6, 0.6);
 }
 
 .nav-btn {
