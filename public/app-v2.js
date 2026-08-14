@@ -1689,3 +1689,649 @@ document.addEventListener('keydown', (event) => {
     if (genModal && !genModal.classList.contains('hidden')) setGenModalOpen(false);
   }
 });
+
+// ═══════════════ PROXIES TAB ═══════════════
+
+async function loadProxies() {
+  const tbody = document.querySelector('#proxies-table tbody');
+  if (!tbody) return;
+  const data = await api('GET', '/proxies');
+  if (data.error) { toast(data.error, 'error'); return; }
+
+  const chip = document.getElementById('proxy-pool-status');
+  if (chip) {
+    chip.textContent = data.rotationEnabled ? 'rotation active' : 'rotation off (empty pool)';
+    chip.className = 'chip ' + (data.rotationEnabled ? 'ok' : '');
+  }
+  const count = document.getElementById('proxy-count');
+  if (count) count.textContent = `${data.proxies.length} proxies`;
+
+  tbody.replaceChildren();
+  if (!data.proxies.length) {
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = 8; cell.className = 'empty-cell'; cell.textContent = 'no proxies — add above or minting runs direct';
+    row.appendChild(cell); tbody.appendChild(row);
+  }
+  for (const p of data.proxies) {
+    const row = document.createElement('tr');
+    const cells = [
+      p.id,
+      p.label || '—',
+      p.url,
+      p.status,
+      p.latency ? `${p.latency}ms` : '—',
+      p.exitIp || '—',
+      p.geo || '—',
+    ];
+    for (const val of cells) {
+      const td = document.createElement('td');
+      td.textContent = String(val);
+      if (val === 'ok') td.className = 'status-ok';
+      if (val === 'fail') td.className = 'status-fail';
+      row.appendChild(td);
+    }
+    const actions = document.createElement('td');
+    const testBtn = document.createElement('button');
+    testBtn.className = 'action-btn small secondary'; testBtn.textContent = 'test';
+    testBtn.addEventListener('click', async () => {
+      testBtn.disabled = true; testBtn.textContent = '…';
+      const r = await api('POST', `/proxies/${p.id}/test`);
+      testBtn.disabled = false; testBtn.textContent = 'test';
+      toast(r.error ? `fail: ${r.error}` : `ok — ${r.exitIp} (${r.latency}ms, ${r.geo})`, r.error ? 'error' : 'success');
+      loadProxies();
+    });
+    const delBtn = document.createElement('button');
+    delBtn.className = 'action-btn small danger'; delBtn.textContent = 'delete';
+    delBtn.addEventListener('click', async () => {
+      const r = await api('DELETE', `/proxies/${p.id}`);
+      if (r.error) toast(r.error, 'error'); else { toast('proxy removed', 'success'); loadProxies(); }
+    });
+    actions.append(testBtn, delBtn);
+    row.appendChild(actions);
+    tbody.appendChild(row);
+  }
+
+  const assignBody = document.querySelector('#proxy-assign-table tbody');
+  if (assignBody) {
+    assignBody.replaceChildren();
+    for (const a of (data.assignments || [])) {
+      const row = document.createElement('tr');
+      const w = document.createElement('td'); w.className = 'mono'; w.textContent = a.wallet;
+      const p = document.createElement('td'); p.className = 'mono'; p.textContent = a.proxyLabel || a.proxyId;
+      row.append(w, p); assignBody.appendChild(row);
+    }
+    if (!assignBody.children.length) {
+      const row = document.createElement('tr');
+      const cell = document.createElement('td');
+      cell.colSpan = 2; cell.className = 'empty-cell'; cell.textContent = 'no assignments yet — run a mint with proxies enabled';
+      row.appendChild(cell); assignBody.appendChild(row);
+    }
+  }
+}
+
+const proxyAddBtn = document.getElementById('proxy-add-bulk');
+if (proxyAddBtn) proxyAddBtn.addEventListener('click', async () => {
+  const text = document.getElementById('proxy-bulk').value;
+  if (!text.trim()) return toast('paste proxies first', 'error');
+  proxyAddBtn.disabled = true;
+  const r = await api('POST', '/proxies', { text });
+  proxyAddBtn.disabled = false;
+  if (r.error) return toast(r.error, 'error');
+  document.getElementById('proxy-bulk').value = '';
+  toast(`added ${r.added} proxies${r.skipped?.length ? `, skipped ${r.skipped.length}` : ''}`, 'success');
+  loadProxies();
+});
+
+const proxyTestAllBtn = document.getElementById('proxy-test-all');
+if (proxyTestAllBtn) proxyTestAllBtn.addEventListener('click', async () => {
+  proxyTestAllBtn.disabled = true; proxyTestAllBtn.textContent = 'testing…';
+  const r = await api('POST', '/proxies-test-all');
+  proxyTestAllBtn.disabled = false; proxyTestAllBtn.textContent = 'test all';
+  if (r.error) return toast(r.error, 'error');
+  toast(`${r.ok} ok / ${r.fail} fail of ${r.total}`, r.fail ? 'error' : 'success');
+  loadProxies();
+});
+
+const proxyClearBtn = document.getElementById('proxy-clear');
+if (proxyClearBtn) proxyClearBtn.addEventListener('click', async () => {
+  const r = await api('POST', '/proxies/clear');
+  if (r.error) return toast(r.error, 'error');
+  toast('pool cleared', 'success'); loadProxies();
+});
+
+const proxyResetBtn = document.getElementById('proxy-reset-assign');
+if (proxyResetBtn) proxyResetBtn.addEventListener('click', async () => {
+  const r = await api('POST', '/proxies/reset-assignments');
+  if (r.error) return toast(r.error, 'error');
+  toast('assignments reset — next mint reassigns', 'success'); loadProxies();
+});
+
+// ═══════════════ SWEEP TAB ═══════════════
+
+function sweepWalletsHtml() {
+  const wrap = document.getElementById('sweep-wallets');
+  if (!wrap) return;
+  wrap.replaceChildren();
+  for (const w of dashboardState.wallets || []) {
+    const label = document.createElement('label');
+    label.className = 'wallet-check';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.value = String(w.index - 1); cb.checked = true;
+    const span = document.createElement('span');
+    span.className = 'mono'; span.textContent = `#${w.index} ${w.address}`;
+    label.append(cb, span);
+    wrap.appendChild(label);
+  }
+}
+
+function selectedSweepIndices() {
+  return [...document.querySelectorAll('#sweep-wallets input:checked')].map(i => parseInt(i.value));
+}
+
+async function runSweep(dryRun) {
+  const chain = document.getElementById('sweep-chain')?.value;
+  const contract = document.getElementById('sweep-contract')?.value.trim();
+  const dest = document.getElementById('sweep-dest')?.value.trim();
+  const walletIndices = selectedSweepIndices();
+  if (!contract) return toast('contract required', 'error');
+  if (!dest) return toast('destination required', 'error');
+  if (!walletIndices.length) return toast('select at least one source wallet', 'error');
+
+  const r = await api('POST', '/sweep', { chain, contract, toAddress: dest, walletIndices, dryRun });
+  if (r.error) return toast(r.error, 'error');
+  toast(`sweep job ${r.jobId} started`, 'success');
+  const panel = document.getElementById('sweep-result');
+  if (panel) {
+    panel.classList.remove('hidden');
+    panel.textContent = `job ${r.jobId} running — watch jobs tab / live log for progress`;
+  }
+}
+
+const sweepExecBtn = document.getElementById('sweep-execute');
+if (sweepExecBtn) sweepExecBtn.addEventListener('click', () => runSweep(false));
+const sweepDryBtn = document.getElementById('sweep-dryrun');
+if (sweepDryBtn) sweepDryBtn.addEventListener('click', () => runSweep(true));
+
+// ═══════════════ RARITY TAB ═══════════════
+
+const rarityLookupBtn = document.getElementById('rarity-lookup');
+if (rarityLookupBtn) rarityLookupBtn.addEventListener('click', async () => {
+  const slug = document.getElementById('rarity-slug').value.trim();
+  if (!slug) return toast('slug required', 'error');
+  rarityLookupBtn.disabled = true;
+  const [meta, stats] = await Promise.all([
+    api('GET', `/rarity/collection/${slug}`),
+    api('GET', `/rarity/stats/${slug}`),
+  ]);
+  rarityLookupBtn.disabled = false;
+  const panel = document.getElementById('rarity-collection-result');
+  panel.classList.remove('hidden');
+  if (meta.error && stats.error) { panel.textContent = `error: ${meta.error}`; return; }
+  const lines = [];
+  if (!meta.error) lines.push(`name: ${meta.name}`, `chain: ${meta.chain} · ${meta.tokenStandard || '?'}`, `contract: ${meta.contract}`, `supply: ${meta.totalSupply ?? '?'}`);
+  if (!stats.error) lines.push(`floor: ${stats.floorPrice ?? '?'} ${stats.floorSymbol}`, `volume: ${stats.totalVolume ?? '?'}`, `owners: ${stats.numOwners ?? '?'}`, `market cap: ${stats.marketCap ?? '?'}`);
+  panel.replaceChildren(...lines.map(t => { const d = document.createElement('div'); d.textContent = t; return d; }));
+});
+
+const rarityCheckBtn = document.getElementById('rarity-check');
+if (rarityCheckBtn) rarityCheckBtn.addEventListener('click', async () => {
+  const chain = document.getElementById('rarity-chain')?.value;
+  const contract = document.getElementById('rarity-contract')?.value.trim();
+  const idsRaw = document.getElementById('rarity-tokenids')?.value;
+  const tokenIds = (idsRaw || '').split(/[\s,]+/).filter(Boolean);
+  if (!contract) return toast('contract required', 'error');
+  if (!tokenIds.length) return toast('token ids required', 'error');
+  rarityCheckBtn.disabled = true; rarityCheckBtn.textContent = 'checking…';
+  const r = await api('POST', '/rarity/batch', { chain, contract, tokenIds });
+  rarityCheckBtn.disabled = false; rarityCheckBtn.textContent = 'check rarity';
+  const panel = document.getElementById('rarity-token-result');
+  panel.classList.remove('hidden');
+  if (r.error) { panel.textContent = `error: ${r.error}`; return; }
+  panel.replaceChildren();
+  const header = document.createElement('div');
+  header.textContent = `${r.ranked}/${r.total} ranked${r.best ? ` · best: #${r.best.rarityRank}` : ''}`;
+  panel.appendChild(header);
+  for (const t of r.results.filter(x => x.rarityRank != null)) {
+    const d = document.createElement('div');
+    d.className = 'mono';
+    d.textContent = `#${t.tokenId} → rank ${t.rarityRank}${t.rarityScore != null ? ` (score ${t.rarityScore})` : ''}`;
+    panel.appendChild(d);
+  }
+  for (const t of r.results.filter(x => x.error)) {
+    const d = document.createElement('div');
+    d.className = 'mono status-fail';
+    d.textContent = `#${t.tokenId} → ${t.error}`;
+    panel.appendChild(d);
+  }
+});
+
+// ═══════════════ WEBHOOKS (config tab) ═══════════════
+
+async function loadWebhookStatus() {
+  const chip = document.getElementById('webhook-status-chip');
+  if (!chip) return;
+  const r = await api('GET', '/webhooks/status');
+  if (r.error) { chip.textContent = 'unknown'; return; }
+  const parts = [];
+  if (r.discord) parts.push('discord on');
+  if (r.telegram) parts.push('telegram on');
+  chip.textContent = parts.length ? parts.join(' · ') : 'none configured';
+  chip.className = 'chip ' + (parts.length ? 'ok' : '');
+}
+
+const webhookTestBtn = document.getElementById('webhook-test');
+if (webhookTestBtn) webhookTestBtn.addEventListener('click', async () => {
+  webhookTestBtn.disabled = true; webhookTestBtn.textContent = 'sending…';
+  const r = await api('POST', '/webhooks/test');
+  webhookTestBtn.disabled = false; webhookTestBtn.textContent = 'test webhooks';
+  const panel = document.getElementById('webhook-test-result');
+  panel.classList.remove('hidden');
+  if (r.error) { panel.textContent = `error: ${r.error}`; return; }
+  panel.replaceChildren();
+  for (const [k, v] of Object.entries(r)) {
+    const d = document.createElement('div');
+    d.textContent = `${k}: ${v.configured ? `sent (HTTP ${v.status ?? v.error})` : 'not configured'}`;
+    panel.appendChild(d);
+  }
+});
+
+// Hook tab switches to lazy-load data
+const origNavHandler = document.querySelectorAll('.nav-btn[data-tab]');
+origNavHandler.forEach(btn => {
+  const prev = btn.onclick;
+  btn.addEventListener('click', () => {
+    if (btn.dataset.tab === 'proxies') loadProxies();
+    if (btn.dataset.tab === 'sweep') { renderSweepChains(); sweepWalletsHtml(); }
+    if (btn.dataset.tab === 'rarity') { renderRarityChains(); }
+    if (btn.dataset.tab === 'flash') { renderFlashChains(); flashWalletsHtml(); }
+    if (btn.dataset.tab === 'solana') loadSolWallets();
+    if (btn.dataset.tab === 'pnl') {
+      const sel = document.getElementById('pnl-scan-chain');
+      if (sel) {
+        const cur = sel.value;
+        sel.replaceChildren();
+        for (const chain of dashboardState.chains || []) sel.appendChild(new Option(chain.name, chain.name));
+        if (cur) sel.value = cur;
+      }
+    }
+    if (btn.dataset.tab === 'config') loadWebhookStatus();
+  });
+});
+
+function renderSweepChains() {
+  const select = document.getElementById('sweep-chain');
+  if (!select) return;
+  const current = select.value;
+  select.replaceChildren();
+  for (const chain of dashboardState.chains || []) {
+    select.appendChild(new Option(`${chain.name} (${chain.id})`, chain.name));
+  }
+  if (current) select.value = current;
+}
+
+function renderRarityChains() {
+  const select = document.getElementById('rarity-chain');
+  if (!select) return;
+  const current = select.value;
+  select.replaceChildren();
+  const osChains = (dashboardState.chains || []).filter(c => !/robinhood/i.test(c.name));
+  for (const chain of osChains) {
+    select.appendChild(new Option(`${chain.name} (${chain.id})`, chain.name));
+  }
+  if (current) select.value = current;
+}
+
+loadWebhookStatus();
+
+// ═══════════════ FLASH MINT TAB ═══════════════
+
+let flashPrepJobId = null;
+
+function renderFlashChains() {
+  for (const id of ['flash-chain', 'rpc-rank-chain']) {
+    const select = document.getElementById(id);
+    if (!select) continue;
+    const current = select.value;
+    select.replaceChildren();
+    for (const chain of dashboardState.chains || []) {
+      select.appendChild(new Option(`${chain.name} (${chain.id})`, chain.name));
+    }
+    if (current) select.value = current;
+  }
+}
+
+function flashWalletsHtml() {
+  const wrap = document.getElementById('flash-wallets');
+  if (!wrap) return;
+  wrap.replaceChildren();
+  for (const w of dashboardState.wallets || []) {
+    const label = document.createElement('label');
+    label.className = 'wallet-check';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = true;
+    const span = document.createElement('span');
+    span.className = 'mono'; span.textContent = `#${w.index} ${w.address}`;
+    label.append(cb, span);
+    wrap.appendChild(label);
+  }
+}
+
+const flashPrepBtn = document.getElementById('flash-prep');
+if (flashPrepBtn) flashPrepBtn.addEventListener('click', async () => {
+  const input = document.getElementById('flash-input')?.value.trim();
+  const chain = document.getElementById('flash-chain')?.value;
+  const amount = parseInt(document.getElementById('flash-amount')?.value) || 1;
+  const walletIndices = [...document.querySelectorAll('#flash-wallets input:checked')].map((_, i, arr) => [...arr].indexOf(arr[i]));
+  const indices = [...document.querySelectorAll('#flash-wallets input')].map((el, i) => ({ el, i })).filter(x => x.el.checked).map(x => x.i);
+  if (!input) return toast('contract required', 'error');
+  if (!indices.length) return toast('select wallets', 'error');
+
+  flashPrepBtn.disabled = true; flashPrepBtn.textContent = 'prepping…';
+  const chip = document.getElementById('flash-prep-chip');
+  if (chip) { chip.textContent = 'prepping'; chip.className = 'chip'; }
+  const r = await api('POST', '/flash-mint/prep', { input, chain, amount, walletIndices: indices });
+  flashPrepBtn.disabled = false; flashPrepBtn.textContent = 'prep — sign';
+  if (r.error) {
+    if (chip) chip.textContent = 'prep failed';
+    return toast(r.error, 'error');
+  }
+  flashPrepJobId = r.jobId;
+  const panel = document.getElementById('flash-result');
+  if (panel) {
+    panel.classList.remove('hidden');
+    panel.textContent = `prep job ${r.jobId} — watch jobs / live log. when it shows READY, hit fire.`;
+  }
+  toast(`prep ${r.jobId} started`, 'success');
+
+  // Poll until prep completes, then enable fire
+  const poll = setInterval(async () => {
+    const jobs = await api('GET', '/jobs');
+    const j = (Array.isArray(jobs) ? jobs : []).find(x => x.id === flashPrepJobId);
+    if (!j) return;
+    if (j.status === 'completed') {
+      clearInterval(poll);
+      const signed = j.result?.signed ?? 0;
+      const fireBtn = document.getElementById('flash-fire');
+      if (signed > 0) {
+        if (fireBtn) fireBtn.disabled = false;
+        if (chip) { chip.textContent = `${signed} armed`; chip.className = 'chip ok'; }
+        toast(`${signed} txs signed — armed. fire when ready`, 'success');
+      } else {
+        if (chip) chip.textContent = '0 signed (check logs)';
+        toast('prep done but 0 txs signed — check job logs', 'error');
+      }
+    } else if (j.status === 'failed') {
+      clearInterval(poll);
+      if (chip) chip.textContent = 'failed';
+    }
+  }, 1500);
+});
+
+const flashFireBtn = document.getElementById('flash-fire');
+if (flashFireBtn) flashFireBtn.addEventListener('click', async () => {
+  if (!flashPrepJobId) return toast('run prep first', 'error');
+  const via = document.getElementById('flash-via')?.value || 'fanout';
+  flashFireBtn.disabled = true; flashFireBtn.textContent = 'firing…';
+  const r = await api('POST', '/flash-mint/fire', { jobId: flashPrepJobId, via });
+  flashFireBtn.textContent = 'fire';
+  if (r.error) {
+    toast(r.error, 'error');
+    return;
+  }
+  toast(`fire job ${r.jobId} — broadcasting`, 'success');
+  const panel = document.getElementById('flash-result');
+  if (panel) {
+    panel.textContent = `fired via job ${r.jobId} — receipts racing across endpoints. see jobs tab.`;
+  }
+  flashPrepJobId = null;
+  const chip = document.getElementById('flash-prep-chip');
+  if (chip) { chip.textContent = ''; chip.className = 'chip'; }
+});
+
+const rpcRankBtn = document.getElementById('rpc-rank');
+if (rpcRankBtn) rpcRankBtn.addEventListener('click', async () => {
+  const chain = document.getElementById('rpc-rank-chain')?.value;
+  if (!chain) return toast('select chain', 'error');
+  rpcRankBtn.disabled = true; rpcRankBtn.textContent = 'ranking…';
+  const r = await api('POST', '/rpc/rank', { chain });
+  rpcRankBtn.disabled = false; rpcRankBtn.textContent = 'rank endpoints';
+  const panel = document.getElementById('rpc-rank-result');
+  panel.classList.remove('hidden');
+  if (r.error) { panel.textContent = `error: ${r.error}`; return; }
+  panel.replaceChildren();
+  const head = document.createElement('div');
+  head.textContent = `${chain} — pool ${r.poolSize} endpoints`;
+  panel.appendChild(head);
+  for (const e of r.ranked) {
+    const d = document.createElement('div');
+    d.className = 'mono' + (e.latencyMs == null ? ' status-fail' : '');
+    d.textContent = e.latencyMs != null
+      ? `${String(e.latencyMs).padStart(5)}ms  ${e.url.replace(/^https?:\/\//, '')}`
+      : `  fail  ${e.url.replace(/^https?:\/\//, '')} — ${(e.error || '').slice(0, 60)}`;
+    panel.appendChild(d);
+  }
+});
+
+// ═══════════════ PNL TAB ═══════════════
+
+const fmtEth = (wei) => {
+  try { return (Number(BigInt(wei)) / 1e18).toFixed(4); } catch { return '?'; }
+};
+
+async function loadPnl() {
+  const btn = document.getElementById('pnl-load');
+  if (btn) { btn.disabled = true; btn.textContent = 'loading…'; }
+  const r = await api('GET', '/pnl');
+  if (btn) { btn.disabled = false; btn.textContent = 'load positions'; }
+  if (r.error) return toast(r.error, 'error');
+
+  const s = r.summary || {};
+  const sum = document.getElementById('pnl-summary');
+  sum.classList.remove('hidden');
+  const held = s.held ?? 0;
+  const realEth = fmtEth(s.realizedWei || 0);
+  const unrl = s.unrealizedWei != null ? fmtEth(s.unrealizedWei) : null;
+  sum.replaceChildren();
+  const line = document.createElement('div');
+  line.className = 'mono';
+  line.style.lineHeight = '1.9';
+  line.innerHTML = [
+    `tokens tracked: <strong>${s.tokens ?? 0}</strong> (held ${held}, sold ${s.sold ?? 0})`,
+    `total cost basis: <strong>${fmtEth(s.totalCostWei || 0)} eth</strong>`,
+    `realized: <strong style="color:${Number(realEth) >= 0 ? '#7ec699' : '#e07070'}">${realEth} eth</strong>`,
+    unrl != null ? `unrealized (vs floor): <strong style="color:${Number(unrl) >= 0 ? '#7ec699' : '#e07070'}">${unrl} eth</strong>` : `unrealized: <span class="status-dim">n/a (no floor)</span>`,
+  ].join('<br>');
+  sum.appendChild(line);
+
+  const walletsPanel = document.getElementById('pnl-wallets');
+  walletsPanel.classList.remove('hidden');
+  walletsPanel.replaceChildren();
+  const head = document.createElement('div');
+  head.textContent = 'per wallet';
+  head.className = 'status-dim';
+  walletsPanel.appendChild(head);
+  for (const [w, v] of Object.entries(r.byWallet || {})) {
+    const d = document.createElement('div');
+    d.className = 'mono';
+    d.textContent = `${w.slice(0, 10)}… held ${v.held} · cost ${fmtEth(v.costWei)} · realized ${fmtEth(v.realizedWei)} eth`;
+    walletsPanel.appendChild(d);
+  }
+
+  const tbody = document.querySelector('#pnl-table tbody');
+  tbody.replaceChildren();
+  for (const p of (r.positions || []).slice(0, 200)) {
+    const tr = document.createElement('tr');
+    const ur = p.floorWei != null && p.status === 'held' ? Number(BigInt(p.floorWei) - BigInt(p.costWei)) / 1e18 : null;
+    tr.innerHTML = [
+      `<td class="mono">#${p.tokenId}</td>`,
+      `<td class="mono">${(p.wallet || '').slice(0, 10)}…</td>`,
+      `<td>${fmtEth(p.costWei)} eth</td>`,
+      `<td>${p.floorWei != null ? fmtEth(p.floorWei) + ' eth' : '—'}</td>`,
+      `<td style="color:${ur != null ? (ur >= 0 ? '#7ec699' : '#e07070') : 'inherit'}">${ur != null ? ur.toFixed(4) + ' eth' : '—'}</td>`,
+      `<td><span class="chip ${p.status === 'held' ? 'ok' : p.status === 'sold' ? 'warn' : ''}">${p.status}</span></td>`,
+    ].join('');
+    tbody.appendChild(tr);
+  }
+}
+
+document.getElementById('pnl-load')?.addEventListener('click', loadPnl);
+
+document.getElementById('pnl-scan')?.addEventListener('click', async () => {
+  const chain = document.getElementById('pnl-scan-chain')?.value;
+  if (!chain) return toast('select chain', 'error');
+  const btn = document.getElementById('pnl-scan');
+  btn.disabled = true; btn.textContent = 'scanning…';
+  const r = await api('POST', '/pnl/scan', { chain });
+  btn.disabled = false; btn.textContent = 'scan on-chain';
+  if (r.error) return toast(r.error, 'error');
+  toast(`scan job ${r.jobId} running — load positions after it completes`, 'success');
+  const chip = document.getElementById('pnl-refresh-chip');
+  if (chip) chip.textContent = 'scanning';
+  const poll = setInterval(async () => {
+    const jobs = await api('GET', '/jobs');
+    const j = (Array.isArray(jobs) ? jobs : []).find(x => x.id === r.jobId);
+    if (j?.status === 'completed') {
+      clearInterval(poll);
+      if (chip) { chip.textContent = `+${j.result?.ingested ?? 0} events`; }
+      toast(`scan done: ${j.result?.ingested ?? 0} events ingested`, 'success');
+      loadPnl();
+    } else if (j?.status === 'failed') { clearInterval(poll); if (chip) chip.textContent = 'failed'; }
+  }, 1500);
+});
+
+document.getElementById('sale-record')?.addEventListener('click', async () => {
+  const contract = document.getElementById('sale-contract')?.value.trim();
+  const tokenId = document.getElementById('sale-token')?.value.trim();
+  const wallet = document.getElementById('sale-wallet')?.value.trim();
+  const saleWei = document.getElementById('sale-wei')?.value.trim();
+  if (!contract || !tokenId || !wallet || !saleWei) return toast('all fields required', 'error');
+  const r = await api('POST', '/pnl/sale', { contract, tokenId, wallet, saleWei });
+  if (r.error) return toast(r.error, 'error');
+  toast('sale recorded', 'success');
+  document.getElementById('sale-contract').value = '';
+  document.getElementById('sale-token').value = '';
+  document.getElementById('sale-wallet').value = '';
+  document.getElementById('sale-wei').value = '';
+});
+
+// ═══════════════ SOLANA TAB ═══════════════
+
+async function loadSolWallets() {
+  const r = await api('GET', '/solana/wallets');
+  const tbody = document.querySelector('#sol-table tbody');
+  const chip = document.getElementById('sol-count');
+  if (r.error) { if (chip) chip.textContent = 'error'; return; }
+  if (chip) chip.textContent = `${r.wallets.length} wallets`;
+  tbody.replaceChildren();
+  for (const w of r.wallets) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = [
+      `<td>${w.index}</td>`,
+      `<td class="mono">${w.publicKey.slice(0, 14)}…${w.publicKey.slice(-6)}</td>`,
+      `<td class="sol-balance" data-pk="${w.publicKey}">—</td>`,
+      `<td><button class="action-btn danger sol-del" data-index="${w.index}">del</button></td>`,
+    ].join('');
+    tbody.appendChild(tr);
+  }
+  document.querySelectorAll('.sol-del').forEach(b => b.addEventListener('click', async () => {
+    const r = await api('DELETE', `/solana/wallets/${b.dataset.index}`);
+    if (r.error) return toast(r.error, 'error');
+    toast('deleted', 'success');
+    loadSolWallets();
+  }));
+}
+
+async function refreshSolBalances() {
+  const r = await api('POST', '/solana/balances');
+  if (r.error) return toast(r.error, 'error');
+  for (const w of r.wallets) {
+    const cell = document.querySelector(`.sol-balance[data-pk="${w.publicKey}"]`);
+    if (cell) cell.textContent = w.sol != null ? `${w.sol.toFixed(4)} SOL` : 'err';
+  }
+}
+
+document.getElementById('sol-gen')?.addEventListener('click', async () => {
+  const count = parseInt(document.getElementById('sol-gen-count')?.value) || 1;
+  const r = await api('POST', '/solana/generate', { count });
+  if (r.error) return toast(r.error, 'error');
+  toast(`${r.created.length} solana wallets generated`, 'success');
+  loadSolWallets();
+});
+
+document.getElementById('sol-balances')?.addEventListener('click', async () => {
+  const btn = document.getElementById('sol-balances');
+  btn.disabled = true; btn.textContent = 'fetching…';
+  await refreshSolBalances();
+  btn.disabled = false; btn.textContent = 'refresh balances';
+});
+
+document.getElementById('sol-import-btn')?.addEventListener('click', async () => {
+  const secretKey = document.getElementById('sol-import')?.value.trim();
+  if (!secretKey) return toast('secret key required', 'error');
+  const r = await api('POST', '/solana/import', { secretKey });
+  if (r.error) return toast(r.error, 'error');
+  toast('imported', 'success');
+  document.getElementById('sol-import').value = '';
+  loadSolWallets();
+});
+
+document.getElementById('sol-send')?.addEventListener('click', async () => {
+  const fromIndex = parseInt(document.getElementById('sol-from')?.value);
+  const toAddress = document.getElementById('sol-to')?.value.trim();
+  const sol = document.getElementById('sol-amount')?.value.trim();
+  if (!toAddress || !sol) return toast('to address and amount required', 'error');
+  const btn = document.getElementById('sol-send');
+  btn.disabled = true;
+  const r = await api('POST', '/solana/transfer', { fromIndex, toAddress, sol });
+  btn.disabled = false;
+  const panel = document.getElementById('sol-result');
+  panel.classList.remove('hidden');
+  if (r.error) { panel.textContent = `error: ${r.error}`; return; }
+  panel.textContent = `sent — sig ${r.signature}`;
+  toast('sol transferred', 'success');
+  refreshSolBalances();
+});
+
+// ═══════════════ DROP PAGE WATCHER (flash tab) ═══════════════
+
+document.getElementById('dropcheck-once')?.addEventListener('click', async () => {
+  const url = document.getElementById('dropcheck-url')?.value.trim();
+  if (!url) return toast('url required', 'error');
+  const btn = document.getElementById('dropcheck-once');
+  btn.disabled = true; btn.textContent = 'checking…';
+  const r = await api('POST', '/dropcheck', { url });
+  btn.disabled = false; btn.textContent = 'check once';
+  const panel = document.getElementById('dropcheck-result');
+  panel.classList.remove('hidden');
+  if (r.error) { panel.textContent = `error: ${r.error}`; return; }
+  panel.replaceChildren();
+  const line = document.createElement('div');
+  line.className = 'mono';
+  line.style.lineHeight = '1.9';
+  const bits = [
+    `status ${r.status} · ${r.latencyMs}ms · ${(r.bytes / 1024).toFixed(1)}kb`,
+    r.price ? `price: ${r.price}` : null,
+    r.phase ? `phase: ${r.phase}` : null,
+    r.live ? 'live: yes' : null,
+    r.soldOut ? 'sold out: yes' : null,
+    r.allowlist ? 'allowlist: yes' : null,
+    r.needsBrowser ? 'js-rendered — static parse limited' : null,
+    r.error ? `error: ${r.error}` : null,
+  ].filter(Boolean);
+  line.textContent = bits.join('\n');
+  line.style.whiteSpace = 'pre';
+  panel.appendChild(line);
+});
+
+document.getElementById('dropcheck-watch')?.addEventListener('click', async () => {
+  const url = document.getElementById('dropcheck-url')?.value.trim();
+  const interval = parseInt(document.getElementById('dropcheck-interval')?.value) || 30;
+  if (!url) return toast('url required', 'error');
+  const r = await api('POST', '/dropcheck/watch', { url, intervalMs: interval * 1000 });
+  if (r.error) return toast(r.error, 'error');
+  toast(`watching ${url} every ${interval}s — webhook fires on flip`, 'success');
+  const panel = document.getElementById('dropcheck-result');
+  panel.classList.remove('hidden');
+  panel.textContent = `watch ${r.watchId} active — updates via live log`;
+});

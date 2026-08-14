@@ -29,6 +29,19 @@ import path from 'path';
 import { ethers } from 'ethers';
 import 'dotenv/config';
 import { isAuthEnabled, verifyPassword, createSession, isValidSession, destroySession, setPassword, changePassword, disableAuth, loadAuth } from './auth.js';
+import { listProxies, addProxy, addProxiesBulk, removeProxy, clearProxies, testAllProxies, testProxy, proxyForWallet, proxiedProvider, resetAssignments, listAssignments, proxyCount, isRotationEnabled } from './proxy.js';
+import { notify, notifyMint, testWebhooks, webhookStatus } from './webhook.js';
+import { collectionStats, collectionMeta, tokenRarity, batchRarity, rarityCacheStats } from './rarity.js';
+import { sweepNfts } from './sweep.js';
+import { chainRpcPool, rankEndpoints, sendRawToAll, waitForReceiptAny } from './broadcast.js';
+import { prepareMintPlan, fireMintPlan } from './presign.js';
+import { sendViaProtect, simulateBundle, submitBundle, waitForReceiptProtect } from './flashbots.js';
+import { siweLogin, fetchVoucher, getStoredJwt, jwtStatus } from './opensea-auth.js';
+import { recordMint, recordSale, recordTransfer, scanWalletActivity, computePositions } from './pnl.js';
+import { generateSolWallets, importSolWallet, solBalances, solTransfer, solWalletList, deleteSolWallet, solNftInfo } from './solana.js';
+import { solveCaptcha, captchaStatus } from './captcha.js';
+import { announce, socialStatus, mintAnnounce } from './social.js';
+import { checkDropPage, watchDropPage } from './dropcheck.js';
 
 const app = express();
 const server = http.createServer(app);
@@ -189,7 +202,7 @@ async function discoverSeadropAddress(nftContract, provider, logFn) {
   const currentBlock = await provider.getBlockNumber();
   const logs = await provider.getLogs({
     address: nftContract, topics: [transferTopic, zeroAddr],
-    fromBlock: Math.max(0, currentBlock - 100000), toBlock: currentBlock,
+    fromBlock: Math.max(1, currentBlock - 100000), toBlock: currentBlock,
   });
   if (logs.length === 0) throw new Error('no mint events to trace SeaDrop');
   const tx = await provider.getTransaction(logs[0].transactionHash);
@@ -203,7 +216,7 @@ async function getSeadropPriceAndFeeRecipient(seadropAddr, nftContract, provider
   const currentBlock = await provider.getBlockNumber();
   const logs = await provider.getLogs({
     address: nftContract, topics: [transferTopic, zeroAddr],
-    fromBlock: Math.max(0, currentBlock - 100000), toBlock: currentBlock,
+    fromBlock: Math.max(1, currentBlock - 100000), toBlock: currentBlock,
   });
 
   if (logs.length > 0) {
@@ -265,12 +278,21 @@ async function resolveOpenSeaSlug(slug, logFn) {
 
 // ─── Mint execution ───
 
-async function executeMint(target, wallet, amount, jobId, { dryRun = false } = {}) {
+async function executeMint(target, wallet, amount, jobId, { dryRun = false, useProxy = true } = {}) {
   const log = (msg) => logJob(jobId, msg);
   const rpcUrl = getRpcUrl(target.chain);
   if (!rpcUrl) throw new Error(`no RPC for chain "${target.chain}". Add it in Chains config tab.`);
 
-  const provider = new ethers.JsonRpcProvider(rpcUrl);
+  // Proxy rotation: sticky per-wallet assignment when pool is enabled
+  let provider;
+  const proxy = (useProxy && isRotationEnabled()) ? proxyForWallet(wallet.address) : null;
+  if (proxy) {
+    log(`[PROXY] ${wallet.address.slice(0, 10)}… → ${proxy.label || proxy.id} (${(proxy.url.match(/@([^/]+)/) || [, proxy.url])[1]})`);
+    provider = proxiedProvider(rpcUrl, proxy.url);
+  } else {
+    provider = new ethers.JsonRpcProvider(rpcUrl);
+  }
+
   const signer = wallet.connect(provider);
   const chainId = getChainId(target.chain);
   if (!chainId) throw new Error(`unknown chain ID for "${target.chain}". Add it in Chains config tab.`);
@@ -370,10 +392,39 @@ async function executeMint(target, wallet, amount, jobId, { dryRun = false } = {
     const tokenIds = mintLogs.map(l => BigInt(l.topics[3]).toString());
     log(`[MINTED] ${tokenIds.length} NFTs: ${tokenIds.map(id => '#' + id).join(', ')}`);
 
+    // Auto rarity fetch for minted tokens (best effort, non-blocking failure)
+    let rarity = null;
+    try {
+      const rarityFn = (await import('./rarity.js')).batchRarity;
+      rarity = await rarityFn(target.chain, target.contract, tokenIds.slice(0, 10), { delayMs: 300 });
+      if (rarity.ranked > 0) {
+        log(`[RARITY] best rank #${rarity.best.rarityRank} (score ${rarity.best.rarityScore ?? '?'}) of ${rarity.ranked} tokens`);
+      } else {
+        log('[RARITY] no ranking data available for this collection/chain');
+      }
+    } catch (e) {
+      log(`[RARITY] skip — ${String(e.message).slice(0, 100)}`);
+    }
+
+    // Webhook notification
+    notifyMint({
+      type: jobId.startsWith('job') ? 'mint' : 'mint',
+      status: receipt.status === 1 ? 'success' : 'reverted',
+      wallet: wallet.address,
+      chain: target.chain,
+      contract: target.contract,
+      tokenIds: tokenIds.join(', #'),
+      txHash: tx.hash,
+      explorer: getExplorer(target.chain) + tx.hash,
+      gasUsed: receipt.gasUsed.toString(),
+      rarityBest: rarity?.best ? `#${rarity.best.rarityRank}` : null,
+    }).catch(() => {});
+
     return {
       status: receipt.status === 1 ? 'success' : 'reverted',
       hash: tx.hash, block: receipt.blockNumber,
       gasUsed: receipt.gasUsed.toString(), tokenIds,
+      rarity: rarity ? { best: rarity.best, ranked: rarity.ranked } : null,
       explorer: getExplorer(target.chain) + tx.hash,
     };
   }
@@ -705,6 +756,15 @@ app.post('/api/mass-mint', async (req, res) => {
 
     logJob(job.id, `[DONE] ✅${success} ❌${failed} ⏭${skipped} / ${wallets.length} total`);
     updateJob(job.id, { status: 'completed', result: { success, failed, skipped, total: wallets.length, results } });
+    notifyMint({
+      type: 'mass-mint',
+      status: success === wallets.length ? 'success' : (success > 0 ? 'partial' : 'error'),
+      wallets: `${success}/${wallets.length} ok, ${failed} failed`,
+      chain: target.chain,
+      contract: target.contract,
+      amountPerWallet: target.amount,
+      dryRun: Boolean(dryRun),
+    }).catch(() => {});
   } catch (e) {
     res.status(400).json({ error: e.message });
   }
@@ -718,6 +778,484 @@ app.get('/api/jobs/:id', (req, res) => {
   const job = jobs.get(req.params.id);
   if (!job) return res.status(404).json({ error: 'not found' });
   res.json(job);
+});
+
+// ─── Proxy Management ───
+
+app.get('/api/proxies', (req, res) => {
+  res.json({ proxies: listProxies(), rotationEnabled: isRotationEnabled(), assignments: listAssignments() });
+});
+
+app.post('/api/proxies', (req, res) => {
+  const { text, url, label } = req.body;
+  try {
+    if (text) {
+      const result = addProxiesBulk(text);
+      res.json({ status: 'ok', ...result, total: proxyCount() });
+    } else if (url) {
+      const p = addProxy(url, label || '');
+      res.json({ status: 'ok', proxy: { ...p, url: '***' }, total: proxyCount() });
+    } else {
+      res.status(400).json({ error: 'text (bulk) or url required' });
+    }
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+app.delete('/api/proxies/:id', (req, res) => {
+  try { res.json(removeProxy(req.params.id)); }
+  catch (e) { res.status(404).json({ error: e.message }); }
+});
+
+app.post('/api/proxies/clear', (req, res) => {
+  clearProxies();
+  res.json({ status: 'ok', cleared: true });
+});
+
+app.post('/api/proxies/:id/test', async (req, res) => {
+  try { res.json(await testProxy(req.params.id)); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post('/api/proxies-test-all', async (req, res) => {
+  try { res.json(await testAllProxies()); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post('/api/proxies/reset-assignments', (req, res) => {
+  res.json(resetAssignments());
+});
+
+// ─── Webhook Management ───
+
+app.get('/api/webhooks/status', (req, res) => {
+  res.json(webhookStatus());
+});
+
+app.post('/api/webhooks/test', async (req, res) => {
+  try { res.json(await testWebhooks()); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ─── Rarity ───
+
+app.get('/api/rarity/stats/:slug', async (req, res) => {
+  if (!/^[\w-]+$/.test(req.params.slug)) return res.status(400).json({ error: 'invalid slug' });
+  try { res.json(await collectionStats(req.params.slug)); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.get('/api/rarity/collection/:slug', async (req, res) => {
+  if (!/^[\w-]+$/.test(req.params.slug)) return res.status(400).json({ error: 'invalid slug' });
+  try { res.json(await collectionMeta(req.params.slug)); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.get('/api/rarity/token/:chain/:contract/:tokenId', async (req, res) => {
+  const { chain, contract, tokenId } = req.params;
+  if (!/^0x[a-fA-F0-9]{40}$/.test(contract)) return res.status(400).json({ error: 'invalid contract' });
+  if (!/^\d+$/.test(tokenId)) return res.status(400).json({ error: 'invalid tokenId' });
+  try { res.json(await tokenRarity(chain, contract, tokenId)); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post('/api/rarity/batch', async (req, res) => {
+  const { chain, contract, tokenIds } = req.body;
+  if (!/^0x[a-fA-F0-9]{40}$/.test(contract || '')) return res.status(400).json({ error: 'invalid contract' });
+  if (!Array.isArray(tokenIds) || tokenIds.length === 0) return res.status(400).json({ error: 'tokenIds array required' });
+  try { res.json(await batchRarity(chain, contract, tokenIds.map(String).slice(0, 50))); }
+  catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.get('/api/rarity/cache', (req, res) => {
+  res.json(rarityCacheStats());
+});
+
+// ─── NFT Sweep ───
+
+app.post('/api/sweep', async (req, res) => {
+  const { chain, contract, toAddress, walletIndices, dryRun = false } = req.body;
+  if (!/^0x[a-fA-F0-9]{40}$/.test(contract || '')) return res.status(400).json({ error: 'invalid contract address' });
+  if (!ethers.isAddress(toAddress || '')) return res.status(400).json({ error: 'invalid destination address' });
+  if (!getRpcUrl(chain)) return res.status(400).json({ error: `no RPC for chain "${chain}"` });
+
+  try {
+    const walletsData = JSON.parse(fs.readFileSync(WALLETS_FILE, 'utf-8'));
+    const indices = walletIndices || walletsData.map((_, i) => i);
+    const wallets = indices
+      .map(i => walletsData[i] && { index: i, address: walletsData[i].address, wallet: new ethers.Wallet(walletsData[i].privateKey || walletsData[i].private_key || walletsData[i].pk) })
+      .filter(Boolean);
+    if (wallets.length === 0) return res.status(400).json({ error: 'no valid wallets selected' });
+
+    const job = createJob('sweep', { chain, contract, toAddress, walletCount: wallets.length, dryRun: Boolean(dryRun) });
+    res.json({ jobId: job.id, status: 'pending' });
+
+    updateJob(job.id, { status: 'running' });
+    logJob(job.id, `[SWEEP${dryRun ? ':DRY-RUN' : ''}] ${wallets.length} wallets → ${toAddress} on ${chain}`);
+
+    const result = await sweepNfts({
+      chain, contract, toAddress, wallets,
+      rpcUrl: getRpcUrl(chain), chainId: getChainId(chain), explorer: getExplorer(chain),
+      jobId: job.id, log: (m) => logJob(job.id, m), dryRun: Boolean(dryRun),
+    });
+
+    logJob(job.id, `[DONE] ${result.transferred} tokens moved, ${result.errors.length} errors`);
+    updateJob(job.id, { status: 'completed', result });
+    notifyMint({
+      type: 'sweep',
+      status: 'success',
+      chain, contract, destination: toAddress,
+      tokensMoved: result.transferred,
+      walletsOk: `${result.success}/${result.total}`,
+      dryRun: Boolean(dryRun),
+    }).catch(() => {});
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// ─── Flash Mint (pre-sign + multi-RPC fan-out) ───
+
+// Phase 1: PREP — resolve + build + sign all TXs (no broadcast)
+app.post('/api/flash-mint/prep', async (req, res) => {
+  const { input, chain, amount = 1, walletIndices, gasLimit = 300000 } = req.body;
+  try {
+    let target = parseTarget(input || '');
+    if (target.source === 'opensea_slug') {
+      const resolved = await resolveOpenSeaSlug(target.slug, () => {});
+      target.contract = resolved.contract;
+      target.chain = resolved.chain;
+    }
+    const chainName = chain || target.chain;
+    if (!getRpcUrl(chainName)) return res.status(400).json({ error: `no RPC for chain "${chainName}"` });
+
+    const walletsData = JSON.parse(fs.readFileSync(WALLETS_FILE, 'utf-8'));
+    const indices = walletIndices || walletsData.map((_, i) => i);
+    const wallets = indices
+      .map(i => walletsData[i] && { index: i, address: walletsData[i].address, wallet: new ethers.Wallet(walletsData[i].privateKey || walletsData[i].private_key || walletsData[i].pk) })
+      .filter(Boolean);
+    if (!wallets.length) return res.status(400).json({ error: 'no valid wallets selected' });
+
+    const job = createJob('flash-prep', { chain: chainName, contract: target.contract, walletCount: wallets.length, amount });
+    res.json({ jobId: job.id, status: 'pending' });
+    updateJob(job.id, { status: 'running' });
+
+    const plan = await prepareMintPlan({
+      chain: chainName, contract: target.contract, amount, wallets,
+      rpcUrl: getRpcUrl(chainName), chainId: getChainId(chainName), gasLimit,
+      skipBalanceCheck: Boolean(req.body.skipBalanceCheck),
+      log: (m) => logJob(job.id, m),
+    });
+
+    // Hold plan in memory for the fire phase (keyed by job id)
+    flashPlans.set(job.id, plan);
+    updateJob(job.id, { status: 'completed', result: plan.summary() });
+    logJob(job.id, `[READY] fire with jobId — TXs stay valid ~5 min (gas estimate drifts)`);
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// Phase 2: FIRE — broadcast all pre-signed TXs to ranked endpoints
+// body.via: 'fanout' (default) | 'flashbots' (private, no frontrun) | 'both'
+app.post('/api/flash-mint/fire', async (req, res) => {
+  const { jobId, via = 'fanout' } = req.body;
+  const plan = flashPlans.get(jobId);
+  if (!plan) return res.status(404).json({ error: 'plan not found — run prep first (plans are held in memory)' });
+  if (!plan.ready.length) return res.status(400).json({ error: 'plan has no signed TXs' });
+
+  const job = createJob('flash-fire', { planJobId: jobId, walletCount: plan.ready.length, via });
+  res.json({ jobId: job.id, status: 'pending' });
+  updateJob(job.id, { status: 'running' });
+
+  let result;
+  if (via === 'flashbots' || via === 'both') {
+    // private submission via Flashbots Protect (works on mainnet; private mempool)
+    logJob(job.id, `[FIRE:FLASHBOTS] submitting ${plan.ready.length} TXs via private relay`);
+    const fbResults = await Promise.allSettled(plan.ready.map(async (b) => {
+      try {
+        const sent = await sendViaProtect(b.signedTx);
+        logJob(job.id, `[FB] ${b.address.slice(0, 10)}… → protect ${sent.hash.slice(0, 14)}…`);
+        const rcpt = await waitForReceiptProtect(sent.hash, { timeoutMs: 120000 }).catch(() => null);
+        const ok = rcpt?.status === 1;
+        return { ...b, status: rcpt ? (ok ? 'success' : 'reverted') : 'pending', block: rcpt?.blockNumber };
+      } catch (e) {
+        // fall back to fanout for this TX if via === 'both'
+        if (via === 'both') {
+          try {
+            const sent = await sendRawToAll(b.signedTx, plan.fastUrls);
+            const rcpt = await waitForReceiptAny(b.hash, plan.fastUrls);
+            return { ...b, status: rcpt?.status === 1 ? 'success' : 'reverted', sentVia: sent.url, block: rcpt?.blockNumber };
+          } catch (e2) {
+            return { ...b, status: 'error', error: `fb:${String(e.message).slice(0,80)} fanout:${String(e2.message).slice(0,80)}` };
+          }
+        }
+        return { ...b, status: 'error', error: String(e.message).slice(0, 200) };
+      }
+    }));
+    result = { results: fbResults.filter(r => r.status === 'fulfilled').map(r => r.value), ok: 0, total: plan.ready.length, fireMs: 0 };
+    result.ok = result.results.filter(r => r.status === 'success').length;
+    logJob(job.id, `[DONE:FLASHBOTS] ${result.ok}/${result.total} confirmed`);
+  } else {
+    result = await fireMintPlan(plan, { log: (m) => logJob(job.id, m) });
+  }
+
+  updateJob(job.id, { status: 'completed', result: { ok: result.ok, total: result.total, via } });
+  flashPlans.delete(jobId); // one-shot
+
+  // PnL: record each successful mint
+  for (const r of (result.results || [])) {
+    if (r.status === 'success') {
+      recordMint({
+        chain: plan.chain, contract: plan.contract,
+        tokenId: r.tokenId || 'pending', wallet: r.address,
+        priceWei: plan.pricePerNFT, gasWei: r.gasUsed ? String(BigInt(r.gasUsed) * 1n) : '0',
+        txHash: r.hash,
+      });
+    }
+  }
+
+  notifyMint({
+    type: 'flash-mint',
+    status: result.ok === result.total ? 'success' : (result.ok > 0 ? 'partial' : 'error'),
+    chain: plan.chain, contract: plan.contract,
+    wallets: `${result.ok}/${result.total} confirmed via ${via}`,
+    fireMs: result.fireMs,
+  }).catch(() => {});
+});
+
+const flashPlans = new Map();
+
+// RPC pool diagnostics — rank all endpoints for a chain
+app.post('/api/rpc/rank', async (req, res) => {
+  const { chain } = req.body;
+  const rpcUrl = getRpcUrl(chain);
+  if (!rpcUrl) return res.status(400).json({ error: `no RPC for chain "${chain}"` });
+  try {
+    const pool = chainRpcPool(chain, rpcUrl);
+    const ranked = await rankEndpoints(pool);
+    res.json({ chain, poolSize: pool.length, ranked });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// ─── OpenSea SIWE Auth + Voucher ───
+
+// List stored JWTs
+app.get('/api/opensea/jwt', (req, res) => res.json({ jwts: jwtStatus() }));
+
+// SIWE login for one wallet (requires OPENSEA_API_KEY)
+app.post('/api/opensea/siwe', async (req, res) => {
+  const { walletIndex = 0, chain = 'ethereum' } = req.body;
+  const apiKey = process.env.OPENSEA_API_KEY;
+  if (!apiKey) return res.status(400).json({ error: 'OPENSEA_API_KEY not set in .env' });
+  try {
+    const walletsData = JSON.parse(fs.readFileSync(WALLETS_FILE, 'utf-8'));
+    const w = walletsData[walletIndex];
+    if (!w) return res.status(400).json({ error: `wallet index ${walletIndex} not found` });
+    const wallet = new ethers.Wallet(w.privateKey || w.private_key || w.pk);
+    const jwt = await siweLogin(wallet, apiKey, chain, (m) => {});
+    res.json({ ok: true, address: wallet.address, jwtPrefix: jwt.slice(0, 20) + '…' });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// Fetch voucher for a drop (requires prior SIWE or auto-login)
+app.post('/api/opensea/voucher', async (req, res) => {
+  const { dropId, walletIndex = 0, chain = 'ethereum' } = req.body;
+  const apiKey = process.env.OPENSEA_API_KEY;
+  if (!apiKey) return res.status(400).json({ error: 'OPENSEA_API_KEY not set in .env' });
+  if (!dropId) return res.status(400).json({ error: 'dropId required' });
+  try {
+    const walletsData = JSON.parse(fs.readFileSync(WALLETS_FILE, 'utf-8'));
+    const w = walletsData[walletIndex];
+    const wallet = new ethers.Wallet(w.privateKey || w.private_key || w.pk);
+    const voucher = await fetchVoucher(wallet, apiKey, { dropId, chain }, () => {});
+    res.json({ ok: true, voucher });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// ─── PnL ───
+
+// Scan wallet activity on-chain and ingest into pnl.json
+app.post('/api/pnl/scan', async (req, res) => {
+  const { chain } = req.body;
+  const rpcUrl = getRpcUrl(chain);
+  if (!rpcUrl) return res.status(400).json({ error: `no RPC for chain "${chain}"` });
+  try {
+    const walletsData = JSON.parse(fs.readFileSync(WALLETS_FILE, 'utf-8'));
+    const job = createJob('pnl-scan', { chain, wallets: walletsData.length });
+    res.json({ jobId: job.id });
+    updateJob(job.id, { status: 'running' });
+    const r = await scanWalletActivity({
+      wallets: walletsData.map(w => w.address), chain, rpcUrl,
+      log: (m) => logJob(job.id, m),
+    });
+    updateJob(job.id, { status: 'completed', result: r });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// Positions + summary (optional floor prices via ?floor=contract:wei,...)
+app.get('/api/pnl', async (req, res) => {
+  try {
+    let floors = {};
+    if (req.query.floors) {
+      for (const pair of String(req.query.floors).split(',')) {
+        const [c, w] = pair.split(':');
+        if (c && w) floors[c.toLowerCase()] = w;
+      }
+    }
+    // auto floor via opensea if key present and no explicit floors
+    if (!Object.keys(floors).length && process.env.OPENSEA_API_KEY) {
+      const d = computePositions();
+      const contracts = [...new Set(d.positions.filter(p => p.status === 'held').map(p => p.contract))];
+      await Promise.allSettled(contracts.slice(0, 3).map(async (c) => {
+        try {
+          const stats = await collectionStats(c);
+          if (stats?.floor_price) {
+            const decimals = stats.floor_price_payment_token?.decimals || 18;
+            floors[c.toLowerCase()] = String(BigInt(Math.round(stats.floor_price * 10 ** decimals)));
+          }
+        } catch {}
+      }));
+    }
+    res.json(computePositions(floors));
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// Manual sale entry
+app.post('/api/pnl/sale', (req, res) => {
+  const { chain, contract, tokenId, wallet, saleWei, feeWei, txHash } = req.body;
+  if (!contract || tokenId == null || !wallet || !saleWei) return res.status(400).json({ error: 'contract, tokenId, wallet, saleWei required' });
+  recordSale({ chain: chain || 'ethereum', contract, tokenId, wallet, saleWei, feeWei: feeWei || 0, txHash });
+  res.json({ ok: true });
+});
+
+// ─── Flashbots diagnostics ───
+
+app.post('/api/flashbots/simulate', async (req, res) => {
+  const { signedTxs } = req.body;
+  if (!Array.isArray(signedTxs) || !signedTxs.length) return res.status(400).json({ error: 'signedTxs array required' });
+  try {
+    const result = await simulateBundle(signedTxs, process.env.FLASHBOTS_AUTH_KEY);
+    res.json({ ok: true, result });
+  } catch (e) {
+    res.status(400).json({ error: e.message });
+  }
+});
+
+// ─── Solana ───
+
+app.get('/api/solana/wallets', (req, res) => res.json({ wallets: solWalletList() }));
+
+app.post('/api/solana/generate', (req, res) => {
+  const count = Math.min(50, parseInt(req.body.count) || 1);
+  res.json({ created: generateSolWallets(count) });
+});
+
+app.post('/api/solana/import', (req, res) => {
+  try { res.json(importSolWallet(req.body.secretKey)); } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post('/api/solana/balances', async (req, res) => {
+  try { res.json({ wallets: await solBalances() }); } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.post('/api/solana/transfer', async (req, res) => {
+  const { fromIndex, toAddress, sol } = req.body;
+  if (fromIndex == null || !toAddress || !sol) return res.status(400).json({ error: 'fromIndex, toAddress, sol required' });
+  try {
+    const r = await solTransfer({ fromIndex, toAddress, sol });
+    res.json(r);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.delete('/api/solana/wallets/:index', (req, res) => {
+  try { res.json({ deleted: deleteSolWallet(parseInt(req.params.index)) }); } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+app.get('/api/solana/nft/:mint', async (req, res) => {
+  try { res.json(await solNftInfo(req.params.mint)); } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ─── CAPTCHA ───
+
+app.get('/api/captcha/status', (req, res) => res.json(captchaStatus()));
+
+app.post('/api/captcha/solve', async (req, res) => {
+  const { type = 'recaptcha2', sitekey, pageurl, imageBase64, provider, timeoutMs } = req.body;
+  if (type !== 'image' && (!sitekey || !pageurl)) return res.status(400).json({ error: 'sitekey and pageurl required' });
+  if (type === 'image' && !imageBase64) return res.status(400).json({ error: 'imageBase64 required' });
+  try {
+    const r = await solveCaptcha({ type, sitekey, pageurl, imageBase64, provider }, { timeoutMs });
+    res.json(r);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ─── Social ───
+
+app.get('/api/social/status', (req, res) => res.json(socialStatus()));
+
+app.post('/api/social/announce', async (req, res) => {
+  const { text, targets } = req.body;
+  if (!text) return res.status(400).json({ error: 'text required' });
+  try {
+    const r = await announce({ text, targets }, () => {});
+    res.json(r);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
+
+// ─── Drop page checker ───
+
+app.post('/api/dropcheck', async (req, res) => {
+  const { url } = req.body;
+  if (!/^https?:\/\//i.test(url || '')) return res.status(400).json({ error: 'valid url required' });
+  res.json(await checkDropPage(url));
+});
+
+// in-memory watchers
+const dropWatchers = new Map();
+
+app.post('/api/dropcheck/watch', (req, res) => {
+  const { url, intervalMs } = req.body;
+  if (!/^https?:\/\//i.test(url || '')) return res.status(400).json({ error: 'valid url required' });
+  const id = 'watch_' + Date.now().toString(36);
+  const events = [];
+  const handle = watchDropPage(url, {
+    intervalMs: Math.max(10000, intervalMs || 30000),
+    onUpdate: (s) => {
+      events.push({ ts: Date.now(), status: s.status, soldOut: s.soldOut, live: s.live, phase: s.phase, price: s.price });
+      io.emit('dropwatch', { id, update: events[events.length - 1] });
+      if (handle.flipped) {
+        notify(`drop watch flipped for ${url}: ${s.soldOut ? 'SOLD OUT' : 'LIVE'}`).catch(() => {});
+      }
+    },
+  });
+  dropWatchers.set(id, { url, events, handle });
+  res.json({ watchId: id, url, intervalMs: Math.max(10000, intervalMs || 30000) });
+});
+
+app.get('/api/dropcheck/watch/:id', (req, res) => {
+  const w = dropWatchers.get(req.params.id);
+  if (!w) return res.status(404).json({ error: 'watch not found' });
+  res.json({ url: w.url, events: w.events.slice(-20), flipped: Boolean(w.handle.flipped) });
+});
+
+app.delete('/api/dropcheck/watch/:id', (req, res) => {
+  const w = dropWatchers.get(req.params.id);
+  if (!w) return res.status(404).json({ error: 'watch not found' });
+  w.handle.cancelled = true;
+  dropWatchers.delete(req.params.id);
+  res.json({ ok: true });
 });
 
 // ─── Auth Routes ───

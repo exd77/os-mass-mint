@@ -22,3 +22,9 @@ Thumbs.db
 *.backup
 *.old
 
+proxies.json
+proxy-assignments.json
+rarity-cache.json
+opensea-jwt.json
+pnl.json
+solana-wallets.json

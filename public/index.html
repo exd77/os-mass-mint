@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style-v2.css?v=6">
+  <link rel="stylesheet" href="/style-v2.css?v=9">
 </head>
 <body>
   <!-- ═══ SIDEBAR ═══ -->
@@ -28,13 +28,37 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="7" height="7" rx="2"/><rect x="13" y="4" width="7" height="7" rx="2"/><rect x="4" y="13" width="7" height="7" rx="2"/><path d="M16.5 14v5M14 16.5h5"/></svg>
         <span>mass</span>
       </button>
+      <button class="nav-btn" data-tab="flash" title="flash">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8z"/></svg>
+        <span>flash</span>
+      </button>
       <button class="nav-btn" data-tab="wallets" title="wallets">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M20 7H5a2 2 0 0 1-2-2 2 2 0 0 1 2-2h13v4"/><path d="M3 5v13a2 2 0 0 0 2 2h15a1 1 0 0 0 1-1V8a1 1 0 0 0-1-1"/><circle cx="16.5" cy="14" r="1.2"/></svg>
         <span>wallets</span>
       </button>
+      <button class="nav-btn" data-tab="solana" title="solana">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 7h13l3 3H7z"/><path d="M4 14h13l3 3H7z"/></svg>
+        <span>solana</span>
+      </button>
       <button class="nav-btn" data-tab="chains" title="chains">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 13a5 5 0 0 0 7.07 0l2.12-2.12a5 5 0 0 0-7.07-7.07L11 4.93"/><path d="M14 11a5 5 0 0 0-7.07 0L4.81 13.12a5 5 0 0 0 7.07 7.07L13 19.07"/></svg>
         <span>chains</span>
+      </button>
+      <button class="nav-btn" data-tab="proxies" title="proxies">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="5" r="2.5"/><circle cx="5" cy="19" r="2.5"/><circle cx="19" cy="19" r="2.5"/><path d="M12 7.5V12M12 12l-5.5 4.8M12 12l5.5 4.8"/></svg>
+        <span>proxies</span>
+      </button>
+      <button class="nav-btn" data-tab="sweep" title="sweep">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h12l-3-3M20 18H8l3 3"/></svg>
+        <span>sweep</span>
+      </button>
+      <button class="nav-btn" data-tab="rarity" title="rarity">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M6 3h12l4 6-10 12L2 9l4-6z"/></svg>
+        <span>rarity</span>
+      </button>
+      <button class="nav-btn" data-tab="pnl" title="pnl">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 3v18h18"/><path d="m7 14 4-4 3 3 5-6"/></svg>
+        <span>pnl</span>
       </button>
     </nav>
 
@@ -284,6 +308,50 @@
       </div>
     </section>
 
+    <!-- ── SOLANA TAB ── -->
+    <section id="tab-solana" class="tab">
+      <div class="center-wrap wide">
+        <h2 class="tab-title">solana</h2>
+
+        <div class="card">
+          <div class="card-head"><h3>wallets</h3><span id="sol-count" class="chip"></span></div>
+          <div class="card-body">
+            <div class="actions-row">
+              <input type="number" id="sol-gen-count" value="5" min="1" max="50" style="width:70px">
+              <button id="sol-gen" class="action-btn primary">generate</button>
+              <button id="sol-balances" class="action-btn secondary">refresh balances</button>
+            </div>
+            <div class="form-group">
+              <label for="sol-import">import secret key (base64)</label>
+              <div class="actions-row">
+                <input type="text" id="sol-import" class="mono" placeholder="base64 secret">
+                <button id="sol-import-btn" class="action-btn secondary">import</button>
+              </div>
+            </div>
+            <div class="table-wrap">
+              <table id="sol-table">
+                <thead><tr><th>#</th><th>public key</th><th>balance</th><th></th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>transfer sol</h3></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group"><label for="sol-from">from index</label><input type="number" id="sol-from" value="0" min="0"></div>
+              <div class="form-group"><label for="sol-amount">amount (sol)</label><input type="text" id="sol-amount" placeholder="0.01"></div>
+            </div>
+            <div class="form-group"><label for="sol-to">to address</label><input type="text" id="sol-to" class="mono" placeholder="…"></div>
+            <div class="actions-row"><button id="sol-send" class="action-btn danger">send</button></div>
+            <div id="sol-result" class="info-panel hidden"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
     <!-- ── CHAINS TAB ── -->
     <section id="tab-chains" class="tab">
       <div class="center-wrap wide">
@@ -332,6 +400,266 @@
                 <thead><tr><th>name</th><th>id</th><th>rpc</th><th>explorer</th><th>seadrop</th><th>actions</th></tr></thead>
                 <tbody></tbody>
               </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PROXIES TAB ── -->
+    <section id="tab-proxies" class="tab">
+      <div class="center-wrap wide">
+        <div class="tab-header">
+          <h2 class="tab-title">proxies</h2>
+          <div class="tab-actions">
+            <button id="proxy-test-all" class="action-btn small">test all</button>
+            <button id="proxy-reset-assign" class="action-btn small">reset assignments</button>
+            <button id="proxy-clear" class="action-btn small danger">clear all</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>add proxies</h3><span id="proxy-pool-status" class="chip"></span></div>
+          <div class="card-body">
+            <div class="form-group">
+              <label for="proxy-bulk">bulk add (one per line, http/https/socks5, user:pass@host:port ok)</label>
+              <textarea id="proxy-bulk" class="mono" rows="4" placeholder="http://1.2.3.4:8080&#10;socks5://user:pass@5.6.7.8:1080"></textarea>
+            </div>
+            <div class="actions-row">
+              <button id="proxy-add-bulk" class="action-btn primary">add</button>
+            </div>
+            <div id="proxy-add-result" class="info-panel hidden"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>pool</h3><span id="proxy-count" class="chip"></span></div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table id="proxies-table">
+                <thead><tr><th>id</th><th>label</th><th>endpoint</th><th>status</th><th>latency</th><th>exit ip</th><th>geo</th><th>actions</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>wallet assignments</h3></div>
+          <div class="card-body">
+            <p class="modal-desc">each wallet sticks to one proxy across mints. rotation only applies while the pool is non-empty.</p>
+            <div class="table-wrap">
+              <table id="proxy-assign-table">
+                <thead><tr><th>wallet</th><th>proxy</th></tr></thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── SWEEP TAB ── -->
+    <section id="tab-sweep" class="tab">
+      <div class="center-wrap wide">
+        <h2 class="tab-title">sweep</h2>
+
+        <div class="card">
+          <div class="card-head"><h3>consolidate nfts</h3></div>
+          <div class="card-body">
+            <p class="modal-desc">scan selected wallets for tokens of a contract and transfer them all to one destination wallet.</p>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="sweep-chain">chain</label>
+                <select id="sweep-chain" class="chain-select"></select>
+              </div>
+              <div class="form-group">
+                <label for="sweep-contract">contract</label>
+                <input type="text" id="sweep-contract" class="mono" placeholder="0x…">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="sweep-dest">destination address</label>
+              <input type="text" id="sweep-dest" class="mono" placeholder="0x…">
+            </div>
+            <div class="form-group">
+              <label>source wallets</label>
+              <div id="sweep-wallets" class="wallet-checkbox-list" style="max-height:220px;overflow:auto"></div>
+            </div>
+            <div class="actions-row">
+              <button id="sweep-dryrun" class="action-btn secondary">dry run</button>
+              <button id="sweep-execute" class="action-btn primary">sweep</button>
+            </div>
+            <div id="sweep-result" class="info-panel hidden"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── RARITY TAB ── -->
+    <section id="tab-rarity" class="tab">
+      <div class="center-wrap wide">
+        <h2 class="tab-title">rarity</h2>
+
+        <div class="card">
+          <div class="card-head"><h3>collection lookup</h3></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="rarity-slug">opensea slug</label>
+                <input type="text" id="rarity-slug" class="mono" placeholder="e.g. hoodies-879658705">
+              </div>
+              <div class="form-group">
+                <label>&nbsp;</label>
+                <button id="rarity-lookup" class="action-btn primary">lookup</button>
+              </div>
+            </div>
+            <div id="rarity-collection-result" class="info-panel hidden"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>token rarity check</h3></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="rarity-chain">chain</label>
+                <select id="rarity-chain" class="chain-select"></select>
+              </div>
+              <div class="form-group">
+                <label for="rarity-contract">contract</label>
+                <input type="text" id="rarity-contract" class="mono" placeholder="0x…">
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="rarity-tokenids">token ids (comma separated, max 50)</label>
+              <input type="text" id="rarity-tokenids" class="mono" placeholder="4305, 4306, 4307">
+            </div>
+            <div class="actions-row">
+              <button id="rarity-check" class="action-btn primary">check rarity</button>
+            </div>
+            <div id="rarity-token-result" class="info-panel hidden"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── FLASH TAB (pre-sign + fan-out) ── -->
+    <section id="tab-flash" class="tab">
+      <div class="center-wrap wide">
+        <h2 class="tab-title">flash mint</h2>
+
+        <div class="card">
+          <div class="card-head"><h3>phase 1 — prep (sign offline)</h3><span id="flash-prep-chip" class="chip"></span></div>
+          <div class="card-body">
+            <p class="modal-desc">resolve the drop, rank the rpc pool, then build and sign every tx before it opens. when the drop goes live, fire — only the broadcast remains.</p>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="flash-chain">chain</label>
+                <select id="flash-chain" class="chain-select"></select>
+              </div>
+              <div class="form-group">
+                <label for="flash-via">broadcast via</label>
+                <select id="flash-via">
+                  <option value="fanout">fanout — public, fastest</option>
+                  <option value="flashbots">flashbots — private, no frontrun</option>
+                  <option value="both">both — flashbots first, fanout fallback</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label for="flash-amount">qty per wallet</label>
+              <input type="number" id="flash-amount" value="1" min="1" max="100">
+            </div>
+            <div class="form-group">
+              <label for="flash-input">contract / opensea link</label>
+              <input type="text" id="flash-input" class="mono" placeholder="0x… or https://opensea.io/collection/…">
+            </div>
+            <div class="form-group">
+              <label>wallets</label>
+              <div id="flash-wallets" class="wallet-checkbox-list" style="max-height:180px;overflow:auto"></div>
+            </div>
+            <div class="actions-row">
+              <button id="flash-prep" class="action-btn primary">prep — sign</button>
+              <button id="flash-fire" class="action-btn danger" disabled>fire</button>
+            </div>
+            <div id="flash-result" class="info-panel hidden"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>rpc pool ranking</h3></div>
+          <div class="card-body">
+            <div class="actions-row">
+              <select id="rpc-rank-chain" class="chain-select"></select>
+              <button id="rpc-rank" class="action-btn secondary">rank endpoints</button>
+            </div>
+            <div id="rpc-rank-result" class="info-panel hidden"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>drop page watcher</h3></div>
+          <div class="card-body">
+            <p class="modal-desc">poll a mint page for phase flips (live / sold out) — fires a webhook when it changes.</p>
+            <div class="form-group"><label for="dropcheck-url">mint page url</label><input type="text" id="dropcheck-url" class="mono" placeholder="https://…"></div>
+            <div class="actions-row">
+              <button id="dropcheck-once" class="action-btn secondary">check once</button>
+              <input type="number" id="dropcheck-interval" value="30" min="10" style="width:70px" title="seconds">
+              <button id="dropcheck-watch" class="action-btn primary">watch</button>
+            </div>
+            <div id="dropcheck-result" class="info-panel hidden"></div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── PNL TAB ── -->
+    <section id="tab-pnl" class="tab">
+      <div class="center-wrap wide">
+        <h2 class="tab-title">pnl</h2>
+
+        <div class="card">
+          <div class="card-head"><h3>summary</h3><span id="pnl-refresh-chip" class="chip"></span></div>
+          <div class="card-body">
+            <div class="actions-row">
+              <select id="pnl-scan-chain" class="chain-select"></select>
+              <button id="pnl-scan" class="action-btn secondary">scan on-chain</button>
+              <button id="pnl-load" class="action-btn primary">load positions</button>
+            </div>
+            <div id="pnl-summary" class="info-panel hidden"></div>
+            <div id="pnl-wallets" class="info-panel hidden"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>positions</h3></div>
+          <div class="card-body">
+            <div class="table-wrap">
+              <table id="pnl-table">
+                <thead>
+                  <tr><th>token</th><th>wallet</th><th>cost</th><th>floor</th><th>unrealized</th><th>status</th></tr>
+                </thead>
+                <tbody></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>manual sale entry</h3></div>
+          <div class="card-body">
+            <p class="modal-desc">record an off-platform sale so realized pnl stays accurate.</p>
+            <div class="form-row">
+              <div class="form-group"><label for="sale-contract">contract</label><input type="text" id="sale-contract" class="mono" placeholder="0x…"></div>
+              <div class="form-group"><label for="sale-token">token id</label><input type="text" id="sale-token" placeholder="4305"></div>
+            </div>
+            <div class="form-row">
+              <div class="form-group"><label for="sale-wallet">wallet address</label><input type="text" id="sale-wallet" class="mono" placeholder="0x…"></div>
+              <div class="form-group"><label for="sale-wei">sale price (wei)</label><input type="text" id="sale-wei" placeholder="10000000000000000"></div>
+            </div>
+            <div class="actions-row">
+              <button id="sale-record" class="action-btn primary">record sale</button>
             </div>
           </div>
         </div>
@@ -428,6 +756,18 @@
         </div>
 
         <div class="card">
+          <div class="card-head"><h3>webhook notifications</h3></div>
+          <div class="card-body">
+            <p class="modal-desc">configure discord / telegram webhooks in .env (DISCORD_WEBHOOK_URL, TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID). mints, sweeps and mass-mint results are pushed automatically.</p>
+            <div class="actions-row">
+              <span id="webhook-status-chip" class="chip">unknown</span>
+              <button id="webhook-test" class="action-btn secondary">test webhooks</button>
+            </div>
+            <div id="webhook-test-result" class="info-panel hidden"></div>
+          </div>
+        </div>
+
+        <div class="card">
           <div class="card-head"><h3>security</h3></div>
           <div class="card-body">
             <div id="auth-section"></div>
@@ -519,6 +859,6 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/app-v2.js?v=5"></script>
+  <script src="/app-v2.js?v=7"></script>
 </body>
 </html>
