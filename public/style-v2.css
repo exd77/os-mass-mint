@@ -3054,3 +3054,29 @@ textarea.mono:focus { outline: none; border-color: var(--border-hover, #444); }
   width: 14px !important;
   padding: 0 !important;
 }
+
+/* ═══════════════ DOCS TAB ═══════════════ */
+
+.docs-body { line-height: 1.75; font-size: 13.5px; color: var(--text-dim, #b8b2a7); }
+.docs-body b { color: var(--text, #e8e2d9); }
+.docs-body p { margin: 0 0 12px 0; }
+.docs-body ol, .docs-body ul { margin: 0 0 14px 0; padding-left: 22px; }
+.docs-body li { margin-bottom: 7px; }
+.docs-body li::marker { color: var(--accent, #d97706); font-weight: 600; }
+.docs-body code {
+  background: rgba(217, 119, 6, 0.12);
+  border: 1px solid rgba(217, 119, 6, 0.25);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-family: 'JetBrains Mono', ui-monospace, monospace;
+  font-size: 12px;
+  color: var(--accent, #d97706);
+}
+.docs-table { width: 100%; border-collapse: collapse; margin-top: 4px; }
+.docs-table th {
+  text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
+  color: var(--accent, #d97706); padding: 8px 10px;
+  border-bottom: 1px solid rgba(217, 119, 6, 0.3);
+}
+.docs-table td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
+.docs-table tr:last-child td { border-bottom: none; }

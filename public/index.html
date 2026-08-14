@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/style-v2.css?v=9">
+  <link rel="stylesheet" href="/style-v2.css?v=10">
 </head>
 <body>
   <!-- ═══ SIDEBAR ═══ -->
@@ -70,6 +70,10 @@
       <button class="nav-btn" data-tab="activity" title="activity">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
         <span>activity</span>
+      </button>
+      <button class="nav-btn" data-tab="docs" title="docs">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+        <span>docs</span>
       </button>
       <button class="nav-btn" data-tab="config" title="settings">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09a1.65 1.65 0 0 0-1-1.51 1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09a1.65 1.65 0 0 0 1.51-1 1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33h.01a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51h.01a1.65 1.65 0 0 0 1.82.33l.06.06a2 2 0 1 1 2.83 2.83l-.06-.06a1.65 1.65 0 0 0-.33 1.82v.01a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
@@ -859,6 +863,168 @@
       </div>
     </section>
 
+    <!-- ── DOCS TAB ── -->
+    <section id="tab-docs" class="tab">
+      <div class="center-wrap wide">
+        <h2 class="tab-title">docs</h2>
+
+        <div class="card">
+          <div class="card-head"><h3>quick start</h3></div>
+          <div class="card-body docs-body">
+            <p>this panel controls an NFT minting stack: 20+ EVM wallets, multi-chain RPC fan-out, offline pre-signing, private relay broadcast, solana wallets, and post-mint tracking. everything runs on this server — the panel is just the cockpit.</p>
+            <ol>
+              <li><b>wallets</b> — generate or import wallets. fund the ones you'll mint with.</li>
+              <li><b>chains</b> — verify RPC endpoints per chain. add more if a drop is on an unsupported chain.</li>
+              <li><b>mint / mass / flash</b> — pick a mode (below) and fire.</li>
+              <li><b>pnl</b> — scan chain history to track cost / realized / unrealized.</li>
+            </ol>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>mint modes — when to use which</h3></div>
+          <div class="card-body docs-body">
+            <table class="docs-table">
+              <tr><th>mode</th><th>speed</th><th>use when</th></tr>
+              <tr><td><b>mint</b></td><td>normal</td><td>drop is already live, no competition, just minting</td></tr>
+              <tr><td><b>mass</b></td><td>normal × N wallets</td><td>minting across many wallets in parallel, drop is live</td></tr>
+              <tr><td><b>flash</b></td><td>fastest</td><td>competitive drop at a known start time — pre-sign everything, fire at T-0</td></tr>
+            </table>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>flash mint — the fastest flow</h3></div>
+          <div class="card-body docs-body">
+            <p>three phases, matching the reference fastest-mint flow:</p>
+            <ol>
+              <li><b>prep — sign offline.</b> resolve the drop, rank the rpc pool by latency, build and sign every tx <i>before</i> the drop opens. nothing touches the chain yet. when the chip shows <span class="chip ok">N armed</span>, txs are ready.</li>
+              <li><b>arm (hot window).</b> enter the drop start (unix seconds) and a lead (seconds before start). the server sleeps until <code>start − lead</code> then fires automatically — no button mashing, no human latency.</li>
+              <li><b>fire.</b> broadcast all signed txs simultaneously:
+                <ul>
+                  <li><b>fanout</b> — every tx to every ranked rpc, first receipt wins. fastest public path.</li>
+                  <li><b>flashbots</b> — private relay, zero frontrun risk, lands in next block.</li>
+                  <li><b>both</b> — flashbots first, fanout as fallback.</li>
+                </ul>
+              </li>
+            </ol>
+            <p><b>price ceiling guard</b> — set a max eth/nft before firing. at fire time the live drop price is re-read from the fastest rpc; if the dev raised the price above your cap, the fire <b>aborts automatically</b> and the plan is kept for a manual decision. prevents gas burn on bait-and-switch drops.</p>
+            <p><b>wl eligibility</b> — check which of your wallets are allowlisted for a collection before the drop. uses the OpenSea eligibility API, falls back to an on-chain merkle-root probe. results show <code>[WL]</code> / <code>[--]</code> / <code>[??]</code> per wallet.</p>
+            <p><b>drop watcher</b> — paste a drop page url to check status (sold out / live / upcoming / allowlist / price). watch mode polls the page and fires a webhook when the phase flips.</p>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>wallets</h3></div>
+          <div class="card-body docs-body">
+            <ul>
+              <li><b>generate</b> — creates fresh wallets server-side (keys stay on this machine, never leave it).</li>
+              <li><b>import</b> — add an existing wallet by private key.</li>
+              <li><b>fund</b> — send eth to each wallet before minting (check the price per nft × qty × wallet count + gas buffer).</li>
+              <li>delete removes by address. <b>there is no recovery from a deleted wallet — sweep funds out first.</b></li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>chains & rpc</h3></div>
+          <div class="card-body docs-body">
+            <ul>
+              <li>each chain has a pool of rpc endpoints. the pool is latency-ranked before every fire — the fastest endpoint gets the broadcast.</li>
+              <li><b>rank</b> — health-check all endpoints for a chain. run this before a drop to prune dead/slow endpoints.</li>
+              <li>add custom endpoints (alchemy, infura, quicknode, or free public ones) per chain in the chains tab.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>proxies</h3></div>
+          <div class="card-body docs-body">
+            <ul>
+              <li>http/socks5 proxies for api calls (rarity, wl checks, drop watching) — keeps api rate limits off your server ip.</li>
+              <li><b>sticky assignment</b> — each wallet keeps the same proxy across runs, mimicking a consistent identity.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>sweep</h3></div>
+          <div class="card-body docs-body">
+            <ul>
+              <li>batch-transfer all erc-721 / erc-1155 holdings from many wallets to one destination wallet.</li>
+              <li>typical flow after minting: sweep the nfts to a vault wallet, then drain remaining eth.</li>
+              <li>runs are idempotent — already-transferred tokens are skipped.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>rarity</h3></div>
+          <div class="card-body docs-body">
+            <ul>
+              <li>pulls collection stats + per-token rarity rank (OpenSea api, cached 15 min).</li>
+              <li>use after minting to decide what to list vs hold — high-rank pieces often list above floor.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>solana</h3></div>
+          <div class="card-body docs-body">
+            <ul>
+              <li>separate wallet set (generate / import), sol balance check, sol transfers, nft account lookup.</li>
+              <li>defaults to the public mainnet rpc (rate limited) — set <code>SOLANA_RPC</code> (helius / quicknode free tier) in settings for serious use.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>pnl</h3></div>
+          <div class="card-body docs-body">
+            <ul>
+              <li><b>scan</b> — reads chain transfer history per wallet: mint (transfer from 0x0) = acquisition cost (price + gas), transfers out = realized.</li>
+              <li>positions update automatically after each successful flash fire.</li>
+              <li>manual sale entry for off-chain deals.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>jobs & activity</h3></div>
+          <div class="card-body docs-body">
+            <ul>
+              <li><b>jobs</b> — every operation (prep, fire, sweep, scan) runs as a background job with live logs. check here when something fails.</li>
+              <li><b>activity</b> — server log stream (socket.io). wake timers and guard decisions log here in real time.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>settings</h3></div>
+          <div class="card-body docs-body">
+            <ul>
+              <li>webhooks — discord / telegram notifications for mints, fires, phase flips.</li>
+              <li>captcha keys — capsolver / 2captcha for gated drops.</li>
+              <li>opensea key — auto-refreshed daily by the server (7-day instant keys, self-healing).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>tips & troubleshooting</h3></div>
+          <div class="card-body docs-body">
+            <ul>
+              <li><b>insufficient funds</b> on fire — wallet gas dust; fund more or lower qty.</li>
+              <li><b>prep 0 signed</b> — drop not resolved (wrong contract/slug) or all wallets underfunded; check job logs.</li>
+              <li><b>price ceiling abort</b> — live price exceeded your cap; dev raised the price. re-check the drop, adjust or remove the cap.</li>
+              <li><b>rpc all dead</b> — run rank; add endpoints in chains.</li>
+              <li><b>receipt never lands</b> — tx likely reverted on-chain (sold out mid-flight). check the tx hash on a explorer.</li>
+              <li><b>server</b> — systemd unit <code>minter</code>: <code>systemctl restart minter</code> · logs: <code>journalctl -u minter -f</code>.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </section>
   </main>
 
   <!-- ── CONSOLE ── -->
