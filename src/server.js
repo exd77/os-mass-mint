@@ -38,6 +38,7 @@ import { prepareMintPlan, fireMintPlan } from './presign.js';
 import { sendViaProtect, simulateBundle, submitBundle, waitForReceiptProtect } from './flashbots.js';
 import { siweLogin, fetchVoucher, getStoredJwt, jwtStatus } from './opensea-auth.js';
 import { recordMint, recordSale, recordTransfer, scanWalletActivity, computePositions } from './pnl.js';
+import { priceCeilingCheck, scheduleHotWindow, hotWindowStatus, checkEligibility } from './guard.js';
 import { generateSolWallets, importSolWallet, solBalances, solTransfer, solWalletList, deleteSolWallet, solNftInfo } from './solana.js';
 import { solveCaptcha, captchaStatus } from './captcha.js';
 import { announce, socialStatus, mintAnnounce } from './social.js';
@@ -959,11 +960,27 @@ app.post('/api/flash-mint/prep', async (req, res) => {
 
 // Phase 2: FIRE — broadcast all pre-signed TXs to ranked endpoints
 // body.via: 'fanout' (default) | 'flashbots' (private, no frontrun) | 'both'
+// body.maxPerNftEth: price ceiling — abort if live price exceeds this
 app.post('/api/flash-mint/fire', async (req, res) => {
-  const { jobId, via = 'fanout' } = req.body;
+  const { jobId, via = 'fanout', maxPerNftEth } = req.body;
   const plan = flashPlans.get(jobId);
   if (!plan) return res.status(404).json({ error: 'plan not found — run prep first (plans are held in memory)' });
   if (!plan.ready.length) return res.status(400).json({ error: 'plan has no signed TXs' });
+
+  // price ceiling guard — re-read live price before broadcasting
+  if (maxPerNftEth) {
+    const guard = await priceCeilingCheck({
+      contract: plan.contract, chain: plan.chain,
+      rpcUrl: plan.fastUrls[0], capPerNftEth: maxPerNftEth,
+      log: (m) => console.log(m),
+    });
+    if (guard.ok === false) {
+      return res.status(400).json({
+        error: `PRICE CEILING ABORT — live ${Number(guard.livePriceWei) / 1e18} ETH > cap ${maxPerNftEth} ETH/NFT`,
+        guard,
+      });
+    }
+  }
 
   const job = createJob('flash-fire', { planJobId: jobId, walletCount: plan.ready.length, via });
   res.json({ jobId: job.id, status: 'pending' });
@@ -1026,6 +1043,80 @@ app.post('/api/flash-mint/fire', async (req, res) => {
 });
 
 const flashPlans = new Map();
+
+// Phase 2b: HOT WINDOW — schedule auto-fire at (startUnix - leadSec)
+// body: { jobId, startUnix, leadSec, via, maxPerNftEth }
+app.post('/api/flash-mint/schedule', (req, res) => {
+  const { jobId, startUnix, leadSec = 0, via = 'fanout', maxPerNftEth } = req.body;
+  const plan = flashPlans.get(jobId);
+  if (!plan) return res.status(404).json({ error: 'plan not found — run prep first' });
+  if (!startUnix) return res.status(400).json({ error: 'startUnix (drop start, seconds) required' });
+
+  const wakeId = `wake_${jobId}`;
+  scheduleHotWindow({
+    id: wakeId, startUnix: Number(startUnix), leadSec: Number(leadSec) || 0,
+    log: (m) => { console.log(m); io.emit('log', { type: 'wake', message: m, ts: Date.now() }); },
+    fire: async () => {
+      // re-run guard at fire time
+      if (maxPerNftEth) {
+        const guard = await priceCeilingCheck({
+          contract: plan.contract, chain: plan.chain,
+          rpcUrl: plan.fastUrls[0], capPerNftEth: maxPerNftEth, log: (m) => console.log(m),
+        });
+        if (guard.ok === false) {
+          console.log(`[WAKE] ${wakeId} ABORTED by price ceiling`);
+          io.emit('log', { type: 'wake', message: `price ceiling abort — plan kept for manual fire`, ts: Date.now() });
+          return; // keep plan for manual decision
+        }
+      }
+      if (!flashPlans.has(jobId)) { console.log(`[WAKE] plan already fired/consumed`); return; }
+      // reuse fire endpoint internals via internal call
+      try {
+        const r = await fetch(`http://localhost:${PORT}/api/flash-mint/fire`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ jobId, via, maxPerNftEth }),
+        });
+        const j = await r.json().catch(() => ({}));
+        console.log(`[WAKE] fire dispatched: ${r.status}`, JSON.stringify(j).slice(0, 200));
+      } catch (e) {
+        console.log(`[WAKE] fire dispatch error: ${e.message}`);
+      }
+    },
+  });
+
+  const fireAt = new Date((Number(startUnix) - (Number(leadSec) || 0)) * 1000).toISOString();
+  res.json({ wakeId, jobId, fireAt, leadSec: Number(leadSec) || 0 });
+});
+
+app.get('/api/flash-mint/schedule', (req, res) => res.json({ wakes: hotWindowStatus() }));
+
+app.delete('/api/flash-mint/schedule/:wakeId', (req, res) => {
+  // handled via id lookup in guard.js timers — expose cancel
+  const w = hotWindowStatus().find(w => w.id === req.params.wakeId);
+  if (!w) return res.status(404).json({ error: 'wake not found' });
+  cancelHotWindow(req.params.wakeId);
+  res.json({ ok: true });
+});
+
+// ─── WL eligibility checker ───
+
+app.post('/api/wl/check', async (req, res) => {
+  const { slug, walletAddresses, walletIndices, chain, rpcUrl } = req.body;
+  let addresses = walletAddresses;
+  if (!addresses && walletIndices) {
+    const walletsData = JSON.parse(fs.readFileSync(WALLETS_FILE, 'utf-8'));
+    addresses = walletIndices.map(i => walletsData[i]?.address).filter(Boolean);
+  }
+  if (!addresses || !addresses.length) return res.status(400).json({ error: 'walletAddresses or walletIndices required' });
+  if (!slug) return res.status(400).json({ error: 'collection slug required' });
+  try {
+    const r = await checkEligibility({
+      slug, walletAddresses: addresses, apiKey: process.env.OPENSEA_API_KEY,
+      chain, rpcUrl: rpcUrl || getRpcUrl(chain), log: (m) => console.log(m),
+    });
+    res.json(r);
+  } catch (e) { res.status(400).json({ error: e.message }); }
+});
 
 // RPC pool diagnostics — rank all endpoints for a chain
 app.post('/api/rpc/rank', async (req, res) => {

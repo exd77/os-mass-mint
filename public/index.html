@@ -579,11 +579,48 @@
               <label>wallets</label>
               <div id="flash-wallets" class="wallet-checkbox-list" style="max-height:180px;overflow:auto"></div>
             </div>
+            <div class="form-row">
+              <div class="form-group">
+                <label for="flash-ceiling">price ceiling (eth/nft)</label>
+                <input type="text" id="flash-ceiling" placeholder="0.01 — blank = no guard">
+              </div>
+              <div class="form-group">
+                <label for="flash-lead">wake lead (sec)</label>
+                <input type="number" id="flash-lead" value="2" min="0" max="60">
+              </div>
+              <div class="form-group">
+                <label for="flash-start">drop start unix</label>
+                <input type="text" id="flash-start" class="mono" placeholder="blank = manual fire">
+              </div>
+            </div>
             <div class="actions-row">
               <button id="flash-prep" class="action-btn primary">prep — sign</button>
               <button id="flash-fire" class="action-btn danger" disabled>fire</button>
+              <button id="flash-schedule" class="action-btn secondary" disabled>arm</button>
             </div>
             <div id="flash-result" class="info-panel hidden"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h3>wl eligibility check</h3></div>
+          <div class="card-body">
+            <div class="form-row">
+              <div class="form-group">
+                <label for="wl-slug">collection slug</label>
+                <input type="text" id="wl-slug" class="mono" placeholder="collection-slug">
+              </div>
+              <div class="form-group">
+                <label for="wl-chain">chain (fallback probe)</label>
+                <select id="wl-chain" class="chain-select"></select>
+              </div>
+            </div>
+            <div class="form-group">
+              <label>wallets</label>
+              <div id="wl-wallets" class="wallet-checkbox-list" style="max-height:140px;overflow:auto"></div>
+            </div>
+            <div class="actions-row"><button id="wl-check-btn" class="action-btn primary">check eligibility</button></div>
+            <div id="wl-result" class="info-panel hidden"></div>
           </div>
         </div>
 
@@ -859,6 +896,6 @@
   </div>
 
   <script src="/socket.io/socket.io.js"></script>
-  <script src="/app-v2.js?v=7"></script>
+  <script src="/app-v2.js?v=8"></script>
 </body>
 </html>

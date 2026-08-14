@@ -1944,7 +1944,7 @@ origNavHandler.forEach(btn => {
     if (btn.dataset.tab === 'proxies') loadProxies();
     if (btn.dataset.tab === 'sweep') { renderSweepChains(); sweepWalletsHtml(); }
     if (btn.dataset.tab === 'rarity') { renderRarityChains(); }
-    if (btn.dataset.tab === 'flash') { renderFlashChains(); flashWalletsHtml(); }
+    if (btn.dataset.tab === 'flash') { renderFlashChains(); flashWalletsHtml(); wlWalletsHtml(); }
     if (btn.dataset.tab === 'solana') loadSolWallets();
     if (btn.dataset.tab === 'pnl') {
       const sel = document.getElementById('pnl-scan-chain');
@@ -2072,8 +2072,9 @@ const flashFireBtn = document.getElementById('flash-fire');
 if (flashFireBtn) flashFireBtn.addEventListener('click', async () => {
   if (!flashPrepJobId) return toast('run prep first', 'error');
   const via = document.getElementById('flash-via')?.value || 'fanout';
+  const ceiling = document.getElementById('flash-ceiling')?.value.trim();
   flashFireBtn.disabled = true; flashFireBtn.textContent = 'firing…';
-  const r = await api('POST', '/flash-mint/fire', { jobId: flashPrepJobId, via });
+  const r = await api('POST', '/flash-mint/fire', { jobId: flashPrepJobId, via, maxPerNftEth: ceiling || undefined });
   flashFireBtn.textContent = 'fire';
   if (r.error) {
     toast(r.error, 'error');
@@ -2334,4 +2335,81 @@ document.getElementById('dropcheck-watch')?.addEventListener('click', async () =
   const panel = document.getElementById('dropcheck-result');
   panel.classList.remove('hidden');
   panel.textContent = `watch ${r.watchId} active — updates via live log`;
+});
+
+// ═══════════════ HOT WINDOW + WL CHECK (flash tab) ═══════════════
+
+const flashScheduleBtn = document.getElementById('flash-schedule');
+if (flashScheduleBtn) flashScheduleBtn.addEventListener('click', async () => {
+  if (!flashPrepJobId) return toast('run prep first', 'error');
+  const startRaw = document.getElementById('flash-start')?.value.trim();
+  const lead = parseInt(document.getElementById('flash-lead')?.value) || 0;
+  const via = document.getElementById('flash-via')?.value || 'fanout';
+  const ceiling = document.getElementById('flash-ceiling')?.value.trim();
+  const startUnix = Math.floor(new Date(startRaw).getTime() / 1000);
+  if (!startRaw || isNaN(startUnix)) return toast('valid drop start required (unix or date)', 'error');
+  const r = await api('POST', '/flash-mint/schedule', {
+    jobId: flashPrepJobId, startUnix, leadSec: lead, via,
+    maxPerNftEth: ceiling || undefined,
+  });
+  if (r.error) return toast(r.error, 'error');
+  toast(`armed — fires at ${new Date(r.fireAt).toLocaleString()}`, 'success');
+  const panel = document.getElementById('flash-result');
+  if (panel) { panel.classList.remove('hidden'); panel.textContent = `hot window armed (${r.wakeId}) — fire at ${r.fireAt}. watch live log.`; }
+  const armBtn = document.getElementById('flash-schedule');
+  if (armBtn) { armBtn.disabled = true; armBtn.textContent = 'armed'; }
+});
+
+// enable arm button together with fire after prep completes
+const _origPollEnable = window.flashEnableFire;
+window.flashEnableFire = (signed) => {
+  const fireBtn = document.getElementById('flash-fire');
+  const armBtn = document.getElementById('flash-schedule');
+  if (signed > 0) { if (fireBtn) fireBtn.disabled = false; if (armBtn) armBtn.disabled = false; }
+};
+
+// WL eligibility
+function wlWalletsHtml() {
+  const wrap = document.getElementById('wl-wallets');
+  if (!wrap || !window.WALLETS) return;
+  wrap.replaceChildren();
+  for (const w of window.WALLETS) {
+    const label = document.createElement('label');
+    label.className = 'wallet-check';
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.checked = true; cb.dataset.index = w.index;
+    const span = document.createElement('span');
+    span.textContent = `${w.index} ${w.address.slice(0, 8)}…${w.address.slice(-4)}`;
+    label.append(cb, span);
+    wrap.appendChild(label);
+  }
+}
+
+document.getElementById('wl-check-btn')?.addEventListener('click', async () => {
+  const slug = document.getElementById('wl-slug')?.value.trim();
+  if (!slug) return toast('slug required', 'error');
+  const chain = document.getElementById('wl-chain')?.value;
+  const indices = [...document.querySelectorAll('#wl-wallets input:checked')].map(c => parseInt(c.dataset.index));
+  if (!indices.length) return toast('select wallets', 'error');
+  const btn = document.getElementById('wl-check-btn');
+  btn.disabled = true; btn.textContent = 'checking…';
+  const r = await api('POST', '/wl/check', { slug, walletIndices: indices, chain });
+  btn.disabled = false; btn.textContent = 'check eligibility';
+  const panel = document.getElementById('wl-result');
+  panel.classList.remove('hidden');
+  if (r.error) { panel.textContent = `error: ${r.error}`; return; }
+  panel.replaceChildren();
+  const eligible = (r.results || []).filter(x => x.eligible).length;
+  const rl = (r.results || []).filter(x => x.reason === 'rate-limited').length;
+  const head = document.createElement('div');
+  head.textContent = `via ${r.via} — ${eligible}/${r.results.length} eligible${rl ? `, ${rl} rate-limited` : ''}`;
+  panel.appendChild(head);
+  const list = document.createElement('div');
+  list.className = 'mono';
+  list.style.whiteSpace = 'pre';
+  list.style.lineHeight = '1.8';
+  list.textContent = (r.results || []).map(x =>
+    `${x.eligible === true ? '[WL] ' : x.eligible === false ? '[--] ' : '[??] '}${x.address.slice(0, 10)}…${x.address.slice(-4)} ${x.reason || ''}`
+  ).join('\n');
+  panel.appendChild(list);
 });
