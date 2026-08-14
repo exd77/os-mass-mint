@@ -72,12 +72,12 @@ body {
   overflow-x: hidden;
   min-height: 0;               /* allow flex child to shrink below content */
   scrollbar-width: thin;       /* firefox */
-  scrollbar-color: rgba(217, 119, 6, 0.35) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
   overscroll-behavior: contain;
   padding-right: 2px;
 }
 
-/* webkit scrollbar — thin, amber, subtle */
+/* webkit scrollbar — thin, white, subtle */
 .sidebar-nav::-webkit-scrollbar {
   width: 4px;
 }
@@ -85,14 +85,14 @@ body {
   background: transparent;
 }
 .sidebar-nav::-webkit-scrollbar-thumb {
-  background: rgba(217, 119, 6, 0.35);
+  background: rgba(255, 255, 255, 0.25);
   border-radius: 4px;
 }
 .sidebar-nav:hover::-webkit-scrollbar-thumb {
-  background: rgba(217, 119, 6, 0.6);
+  background: rgba(255, 255, 255, 0.45);
 }
 .sidebar-nav::-webkit-scrollbar-thumb:hover {
-  background: rgba(217, 119, 6, 0.85);
+  background: rgba(255, 255, 255, 0.7);
 }
 
 .sidebar-bottom {
@@ -106,7 +106,7 @@ body {
   overflow-x: hidden;
   min-height: 0;
   scrollbar-width: thin;
-  scrollbar-color: rgba(217, 119, 6, 0.35) transparent;
+  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
   overscroll-behavior: contain;
   padding-right: 2px;
 }
@@ -118,11 +118,11 @@ body {
   background: transparent;
 }
 .sidebar-bottom::-webkit-scrollbar-thumb {
-  background: rgba(217, 119, 6, 0.35);
+  background: rgba(255, 255, 255, 0.25);
   border-radius: 4px;
 }
 .sidebar-bottom:hover::-webkit-scrollbar-thumb {
-  background: rgba(217, 119, 6, 0.6);
+  background: rgba(255, 255, 255, 0.45);
 }
 
 .nav-btn {
@@ -3112,8 +3112,8 @@ textarea.mono:focus { outline: none; border-color: var(--border-hover, #444); }
 .docs-body li { margin-bottom: 7px; }
 .docs-body li::marker { color: var(--accent, #d97706); font-weight: 600; }
 .docs-body code {
-  background: rgba(217, 119, 6, 0.12);
-  border: 1px solid rgba(217, 119, 6, 0.25);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 4px;
   padding: 1px 6px;
   font-family: 'JetBrains Mono', ui-monospace, monospace;
@@ -3124,7 +3124,7 @@ textarea.mono:focus { outline: none; border-color: var(--border-hover, #444); }
 .docs-table th {
   text-align: left; font-size: 11px; text-transform: uppercase; letter-spacing: 0.08em;
   color: var(--accent, #d97706); padding: 8px 10px;
-  border-bottom: 1px solid rgba(217, 119, 6, 0.3);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
 }
 .docs-table td { padding: 9px 10px; border-bottom: 1px solid rgba(255,255,255,0.05); font-size: 13px; }
 .docs-table tr:last-child td { border-bottom: none; }
