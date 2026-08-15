@@ -95,35 +95,7 @@ body {
   background: rgba(255, 255, 255, 0.7);
 }
 
-.sidebar-bottom {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-top: auto;
-  flex-shrink: 0;              /* keep bottom buttons always visible */
-  max-height: 45dvh;
-  overflow-y: auto;
-  overflow-x: hidden;
-  min-height: 0;
-  scrollbar-width: thin;
-  scrollbar-color: rgba(255, 255, 255, 0.25) transparent;
-  overscroll-behavior: contain;
-  padding-right: 2px;
-}
-
-.sidebar-bottom::-webkit-scrollbar {
-  width: 4px;
-}
-.sidebar-bottom::-webkit-scrollbar-track {
-  background: transparent;
-}
-.sidebar-bottom::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.25);
-  border-radius: 4px;
-}
-.sidebar-bottom:hover::-webkit-scrollbar-thumb {
-  background: rgba(255, 255, 255, 0.45);
-}
+/* single unified nav — one scroll region for all buttons */
 
 .nav-btn {
   display: flex;
