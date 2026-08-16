@@ -33,7 +33,7 @@ import { listProxies, addProxy, addProxiesBulk, removeProxy, clearProxies, testA
 import { notify, notifyMint, testWebhooks, webhookStatus } from './webhook.js';
 import { collectionStats, collectionMeta, tokenRarity, batchRarity, rarityCacheStats } from './rarity.js';
 import { sweepNfts } from './sweep.js';
-import { chainRpcPool, rankEndpoints, sendRawToAll, waitForReceiptAny } from './broadcast.js';
+import { chainRpcPool, rankEndpoints, sendRawToAll, waitForReceiptAny, verifyChainId, warmConnections } from './broadcast.js';
 import { prepareMintPlan, fireMintPlan } from './presign.js';
 import { sendViaProtect, simulateBundle, submitBundle, waitForReceiptProtect } from './flashbots.js';
 import { siweLogin, fetchVoucher, getStoredJwt, jwtStatus } from './opensea-auth.js';
@@ -941,6 +941,17 @@ app.post('/api/flash-mint/prep', async (req, res) => {
     const job = createJob('flash-prep', { chain: chainName, contract: target.contract, walletCount: wallets.length, amount });
     res.json({ jobId: job.id, status: 'pending' });
     updateJob(job.id, { status: 'running' });
+
+    // chainId verify + socket warm before plan build (drop wrong-chain RPCs, heat handshakes)
+    const pool = chainRpcPool(chainName, getRpcUrl(chainName));
+    const expectedCid = getChainId(chainName);
+    if (expectedCid) {
+      const { ok, dropped } = await verifyChainId(pool, expectedCid);
+      for (const d of dropped) logJob(job.id, `[RPC] dropped ${new URL(d.url).host} (chain ${d.chainId ?? 'unreachable'})`);
+      logJob(job.id, `[RPC] ${ok.length}/${pool.length} endpoints chain-verified (${expectedCid})`);
+    }
+    await warmConnections(pool);
+    logJob(job.id, `[RPC] sockets warm — no TLS handshake at fire time`);
 
     const plan = await prepareMintPlan({
       chain: chainName, contract: target.contract, amount, wallets,

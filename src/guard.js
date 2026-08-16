@@ -58,6 +58,7 @@ const timers = new Map();
 
 /**
  * Schedule an auto-fire: waits until (startUnix - leadSec), re-checks guard, fires.
+ * Final 100ms uses spin-wait for sub-ms precision (setTimeout drifts 1-15ms).
  * cb(fireResult) invoked on fire; onError(err) on failure.
  * Returns handle { id, cancel() }.
  */
@@ -65,19 +66,22 @@ export function scheduleHotWindow({ id, startUnix, leadSec = 0, fire, log = () =
   if (!startUnix || startUnix < 1000000000) throw new Error('startUnix (seconds) required');
   if (timers.has(id)) timers.get(id).cancel();
   const targetMs = (startUnix - leadSec) * 1000;
-  const waitMs = targetMs - Date.now();
 
   const state = { id, cancelled: false, timer: null, fired: false };
   const run = async () => {
     if (state.cancelled) return;
     const remain = targetMs - Date.now();
-    if (remain > 0) {
+    if (remain > 120) {
+      // coarse wait — accurate enough when far away
       log(`[WAKE] ${id} wakes in ${(remain / 1000).toFixed(1)}s (target ${new Date(targetMs).toISOString()})`);
-      state.timer = setTimeout(run, Math.min(remain, 2 ** 31 - 1));
+      state.timer = setTimeout(run, Math.min(remain - 100, 2 ** 31 - 1));
       return;
     }
+    // spin-wait final ~100ms — sub-ms precision, burns a little CPU but wins drops
+    while (!state.cancelled && Date.now() < targetMs) { /* spin */ }
+    if (state.cancelled) return;
     state.fired = true;
-    log(`[WAKE] ${id} HOT WINDOW — firing now`);
+    log(`[WAKE] ${id} HOT WINDOW — firing now (+${Date.now() - targetMs}ms)`);
     try { await fire(); } catch (e) { log(`[WAKE] ${id} fire error: ${e.message}`); }
   };
   run();

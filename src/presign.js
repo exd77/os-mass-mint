@@ -12,7 +12,7 @@
  */
 
 import { ethers } from 'ethers';
-import { chainRpcPool, rankEndpoints, sendRawToAll, waitForReceiptAny, fastFeeData } from './broadcast.js';
+import { chainRpcPool, rankEndpoints, fastFeeData, warmConnections, prepareBlast, validateMintParams, blastAll, sendRawToAll, waitForReceiptAny } from './broadcast.js';
 
 const SEADROP_MINT_ABI = ['function mintPublic(address nftContract, address feeRecipient, address minterIfNotPayer, uint256 quantity) payable'];
 
@@ -120,19 +120,45 @@ export async function prepareMintPlan({ chain, contract, amount = 1, wallets, rp
 export async function fireMintPlan(plan, { maxUrls = 6, log = () => {} } = {}) {
   const t0 = Date.now();
   const results = [];
-  log(`[FIRE] broadcasting ${plan.ready.length} signed TXs to ${Math.min(plan.fastUrls.length, maxUrls)} endpoints…`);
+  const targets = plan.fastUrls.slice(0, maxUrls);
 
-  const fired = plan.ready.map(async (b) => {
-    try {
-      const sent = await sendRawToAll(b.signedTx, plan.fastUrls, { maxUrls });
-      log(`[FIRE] ${b.address.slice(0, 10)}… accepted via ${new URL(sent.url).host}${sent.known ? ' (already known)' : ''}`);
-      return { ...b, sentVia: sent.url, status: 'sent' };
-    } catch (e) {
-      log(`[FIRE] ${b.address.slice(0, 10)}… FAIL — ${String(e.message).slice(0, 150)}`);
-      return { ...b, status: 'error', error: String(e.message).slice(0, 300) };
+  // ── Pre-fire: warm sockets so T-0 doesn't pay TLS handshakes ──
+  await warmConnections(targets);
+  log(`[FIRE] sockets warm — ${plan.ready.length} signed TXs → ${targets.length} endpoints`);
+
+  // ── Fire-and-forget: initiate ALL fetches immediately, await responses after ──
+  const blasts = plan.ready.map(b => ({ ...b, blast: prepareBlast(b.signedTx) }));
+  const { txHashes, dispatchedAt, results: blastResults } = blastAll(blasts, targets, { maxUrls });
+  const dispatchMs = Date.now() - dispatchedAt;
+  log(`[FIRE] DISPATCHED ${blasts.length} tx(s) in ${dispatchMs}ms (fire-and-forget)`);
+
+  // ── Collect responses — identify accepted vs rejected ──
+  const settled = await blastResults;
+  const acceptedMap = new Map(); // txHash → { url, known }
+  const rejectedMap = new Map(); // txHash → [errors]
+
+  for (const r of settled) {
+    if (!r) continue;
+    const err = r.json?.error?.message?.toLowerCase() || r.error || '';
+    const isKnown = ['already known', 'already imported', 'nonce too low', 'already in mempool'].some(k => err.includes(k));
+    if (r.json?.result || isKnown) {
+      if (!acceptedMap.has(r.txHash)) acceptedMap.set(r.txHash, { url: r.url, known: isKnown });
+    } else if (err) {
+      if (!rejectedMap.has(r.txHash)) rejectedMap.set(r.txHash, []);
+      rejectedMap.get(r.txHash).push(`${new URL(r.url).host}: ${err.slice(0, 80)}`);
     }
+  }
+
+  const sentResults = blasts.map(b => {
+    const accepted = acceptedMap.get(b.blast.txHash);
+    if (accepted) {
+      log(`[FIRE] ${b.address.slice(0, 10)}… accepted via ${new URL(accepted.url).host}${accepted.known ? ' (already known)' : ''}`);
+      return { ...b, hash: b.blast.txHash, sentVia: accepted.url, status: 'sent' };
+    }
+    const errors = rejectedMap.get(b.blast.txHash) || ['no response'];
+    log(`[FIRE] ${b.address.slice(0, 10)}… FAIL — ${errors[0].slice(0, 120)}`);
+    return { ...b, status: 'error', error: errors.join(' | ').slice(0, 300) };
   });
-  const sentResults = await Promise.all(fired);
 
   // Receipt race across endpoints
   log('[WAIT] racing receipts across endpoints…');
